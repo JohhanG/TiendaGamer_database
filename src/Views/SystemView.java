@@ -25,8 +25,6 @@ public SystemView(Models.Employees loggedEmployee) {
     setLocationRelativeTo(null);
 
     // ✅ NOMBRE Y ROL EN EL HEADER
-    // Busca en tu Variables declaration cómo se llaman exactamente
-    // y reemplaza jLabel63/jLabel64 por los nombres correctos
     jLabel63.setText(loggedEmployee.getFull_name());
     jLabel64.setText(loggedEmployee.getRol());
 
@@ -41,8 +39,6 @@ public SystemView(Models.Employees loggedEmployee) {
     Models.ProductsDao productsDao    = new Models.ProductsDao();
     Models.Sales sale                 = new Models.Sales();
     Models.SalesDao salesDao          = new Models.SalesDao();
-
-    // ✅ AGREGAR MODELOS DE COMPRAS
     Models.Purchases purchase         = new Models.Purchases();
     Models.PurchasesDao purchaseDao   = new Models.PurchasesDao();
 
@@ -61,8 +57,6 @@ public SystemView(Models.Employees loggedEmployee) {
             new Controllers.ProductsController(product, productsDao, this, setting);
     Controllers.SalesController salesController =
             new Controllers.SalesController(sale, salesDao, this);
-
-    // ✅ AGREGAR CONTROLLER DE COMPRAS
     Controllers.PurchasesController purchasesController =
             new Controllers.PurchasesController(purchase, purchaseDao, this);
 
