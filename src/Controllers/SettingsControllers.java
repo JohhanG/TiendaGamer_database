@@ -4,6 +4,7 @@ import Models.Employees;
 import Views.SystemView;
 import java.awt.Color;
 import java.awt.Component;
+import java.awt.Cursor;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.RenderingHints;
@@ -18,12 +19,10 @@ public class SettingsControllers {
     private SystemView views;
     private Employees loggedEmployee;
 
-    // Colores barra lateral
-    private final Color COLOR_NORMAL    = new Color(108, 99, 255);
     private final Color COLOR_ACTIVE_BG = new Color(220, 218, 255);
     private final Color TEXT_NORMAL     = Color.WHITE;
     private final Color TEXT_ACTIVE     = new Color(60, 50, 180);
-    private final Color TEXT_LOCKED     = new Color(255, 255, 255, 80); // blanco apagado
+    private final Color TEXT_LOCKED     = new Color(255, 255, 255, 60);
 
     private JLabel activeLabel = null;
 
@@ -32,13 +31,12 @@ public class SettingsControllers {
     private static final int TAB_SALES      = 2;
     private static final int TAB_CUSTOMERS  = 3;
     private static final int TAB_EMPLOYEES  = 4;
-    private static final int TAB_SUPPLIERS  = 5;
-    private static final int TAB_CATEGORIES = 6;
+     private static final int TAB_SUPPLIERS  = 5;
+    private static final int TAB_CATEGORIES = 6;  
     private static final int TAB_REPORTS    = 7;
     private static final int TAB_SETTINGS   = 8;
 
     public SettingsControllers(SystemView views, Employees loggedEmployee) {
-
         this.views          = views;
         this.loggedEmployee = loggedEmployee;
 
@@ -50,8 +48,8 @@ public class SettingsControllers {
         addNavListener(views.jLabelSales,      TAB_SALES,      false);
         addNavListener(views.jLabelCustomers,  TAB_CUSTOMERS,  false);
         addNavListener(views.jLabelEmployees,  TAB_EMPLOYEES,  true);
-        addNavListener(views.jLabelSupplimers, TAB_SUPPLIERS,  true);
-        addNavListener(views.jLabelCategories, TAB_CATEGORIES, true);
+        addNavListener(views.jLabelSupplimers, TAB_SUPPLIERS,  true);  // ✅
+        addNavListener(views.jLabelCategories, TAB_CATEGORIES, true);  // ✅
         addNavListener(views.jLabelReports,    TAB_REPORTS,    false);
         addNavListener(views.jLabelSettings,   TAB_SETTINGS,   false);
 
@@ -60,22 +58,45 @@ public class SettingsControllers {
             lockLabel(views.jLabelEmployees);
             lockLabel(views.jLabelSupplimers);
             lockLabel(views.jLabelCategories);
+            lockProductButtons();
         }
     }
 
     // =====================================
-    // BLOQUEAR LABEL — mismo fondo morado,
-    // solo el texto se apaga
+    // BLOQUEAR BOTONES DE PRODUCTOS
+    // =====================================
+    private void lockProductButtons() {
+        views.btn_register_product.setEnabled(false);
+        views.btn_update_product.setEnabled(false);
+        views.btn_delete_product.setEnabled(false);
+        views.btn_activate_product.setEnabled(false);
+
+        Color gris = new Color(180, 180, 180);
+        views.btn_register_product.setBackground(gris);
+        views.btn_update_product.setBackground(gris);
+        views.btn_delete_product.setBackground(gris);
+        views.btn_activate_product.setBackground(gris);
+
+        Cursor def = new Cursor(Cursor.DEFAULT_CURSOR);
+        views.btn_register_product.setCursor(def);
+        views.btn_update_product.setCursor(def);
+        views.btn_delete_product.setCursor(def);
+        views.btn_activate_product.setCursor(def);
+    }
+
+    // =====================================
+    // BLOQUEAR LABEL — texto apagado
     // =====================================
     private void lockLabel(JLabel label) {
-        label.setBorder(null);
-        label.setOpaque(false);       // mismo fondo morado del panel
-        label.setForeground(TEXT_LOCKED); // texto blanco semi-transparente
+        label.setForeground(TEXT_LOCKED);
+        label.setEnabled(false);
+        label.setToolTipText("Solo Administrador");
+        label.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
         label.repaint();
     }
 
     // =====================================
-    // HOVER — blanco semi-transparente
+    // HOVER
     // =====================================
     private AbstractBorder createHoverBorder() {
         return new AbstractBorder() {
@@ -93,17 +114,15 @@ public class SettingsControllers {
     }
 
     // =====================================
-    // REGISTRAR EVENTOS
+    // REGISTRAR EVENTOS NAV
     // =====================================
     private void addNavListener(JLabel label, int tabIndex, boolean adminOnly) {
-
         label.addMouseListener(new MouseAdapter() {
 
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (adminOnly && isAuxiliar()) {
                     showAccessDenied();
-                    lockLabel(label); // mantener apagado tras el click
                     return;
                 }
                 views.jTabbedPane1.setSelectedIndex(tabIndex);
@@ -112,7 +131,7 @@ public class SettingsControllers {
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                if (adminOnly && isAuxiliar()) return; // sin hover en bloqueados
+                if (adminOnly && isAuxiliar()) return;
                 if (label != activeLabel) {
                     label.setBorder(createHoverBorder());
                     label.repaint();
@@ -132,19 +151,15 @@ public class SettingsControllers {
     }
 
     // =====================================
-    // MARCAR LABEL COMO ACTIVO
+    // MARCAR LABEL ACTIVO
     // =====================================
     private void setActive(JLabel label) {
-
-        // Restaurar el anterior
         if (activeLabel != null) {
             activeLabel.setBorder(null);
             activeLabel.setOpaque(false);
             activeLabel.setForeground(TEXT_NORMAL);
             activeLabel.repaint();
         }
-
-        // Activar el nuevo
         activeLabel = label;
         activeLabel.setBorder(null);
         activeLabel.setOpaque(true);
@@ -156,7 +171,7 @@ public class SettingsControllers {
     // =====================================
     // VERIFICAR ROL
     // =====================================
-    private boolean isAuxiliar() {
+    public boolean isAuxiliar() {
         return loggedEmployee.getRol().equalsIgnoreCase("auxiliar");
     }
 
@@ -166,9 +181,9 @@ public class SettingsControllers {
     private void showAccessDenied() {
         JOptionPane.showMessageDialog(
                 null,
-                "No tienes permiso de administrador para acceder a este panel",
-                "Acceso denegado",
-                JOptionPane.WARNING_MESSAGE
+                "No tienes permisos de Administrador",
+                "Message",
+                JOptionPane.INFORMATION_MESSAGE
         );
     }
 }

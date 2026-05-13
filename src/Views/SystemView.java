@@ -17,12 +17,18 @@ public class SystemView extends javax.swing.JFrame {
      * Creates new form SystemView
      * Recibe el empleado logueado para navegación y control de permisos
      */
-   public SystemView(Models.Employees loggedEmployee) {
+public SystemView(Models.Employees loggedEmployee) {
     initComponents();
     setSize(1208, 680);
     setResizable(false);
     setTitle("Panel de Administracion");
     setLocationRelativeTo(null);
+
+    // ✅ NOMBRE Y ROL EN EL HEADER
+    // Busca en tu Variables declaration cómo se llaman exactamente
+    // y reemplaza jLabel63/jLabel64 por los nombres correctos
+    jLabel63.setText(loggedEmployee.getFull_name());
+    jLabel64.setText(loggedEmployee.getRol());
 
     // MODELOS
     Models.Employees employee         = new Models.Employees();
@@ -36,28 +42,29 @@ public class SystemView extends javax.swing.JFrame {
     Models.Sales sale                 = new Models.Sales();
     Models.SalesDao salesDao          = new Models.SalesDao();
 
+    // ✅ AGREGAR MODELOS DE COMPRAS
+    Models.Purchases purchase         = new Models.Purchases();
+    Models.PurchasesDao purchaseDao   = new Models.PurchasesDao();
+
+    // ✅ SETTINGS PRIMERO
+    Controllers.SettingsControllers setting =
+            new Controllers.SettingsControllers(this, loggedEmployee);
+
     // CONTROLLERS
     Controllers.EmployeesController employeeController =
             new Controllers.EmployeesController(employee, employeesDao, this);
-    // ← SIN llamada extra a listAllEmployees() aquí
-
     Controllers.SuppliersController supplierController =
             new Controllers.SuppliersController(supplier, suppliersDao, this);
-
     Controllers.CategoriesController categoryController =
             new Controllers.CategoriesController(category, categoryDao, this);
-    // ← SIN llamada extra a listAllCategories() aquí
-
     Controllers.ProductsController productController =
-            new Controllers.ProductsController(product, productsDao, this);
-    // ← SIN llamada extra a listAllProducts() aquí ← ESTE ERA EL BUG
-
+            new Controllers.ProductsController(product, productsDao, this, setting);
     Controllers.SalesController salesController =
             new Controllers.SalesController(sale, salesDao, this);
 
-    // Settings: navegación lateral + restricciones por rol
-    Controllers.SettingsControllers setting =
-            new Controllers.SettingsControllers(this, loggedEmployee);
+    // ✅ AGREGAR CONTROLLER DE COMPRAS
+    Controllers.PurchasesController purchasesController =
+            new Controllers.PurchasesController(purchase, purchaseDao, this);
 
     this.repaint();
 }
@@ -89,9 +96,12 @@ public class SystemView extends javax.swing.JFrame {
         Logo = new javax.swing.JPanel();
         jLabel1 = new javax.swing.JLabel();
         Cabecera = new javax.swing.JPanel();
-        jLabel2 = new javax.swing.JLabel();
         btn_photo = new javax.swing.JButton();
         btn_LoginOut = new javax.swing.JButton();
+        jLabel64 = new javax.swing.JLabel();
+        jLabel65 = new javax.swing.JLabel();
+        jLabel63 = new javax.swing.JLabel();
+        jLabel67 = new javax.swing.JLabel();
         jTabbedPane1 = new javax.swing.JTabbedPane();
         jPanel3 = new javax.swing.JPanel();
         jPanel9 = new javax.swing.JPanel();
@@ -538,12 +548,6 @@ public class SystemView extends javax.swing.JFrame {
         Cabecera.setBackground(new java.awt.Color(153, 153, 255));
         Cabecera.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
 
-        jLabel2.setBackground(new java.awt.Color(18, 45, 61));
-        jLabel2.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
-        jLabel2.setForeground(new java.awt.Color(255, 255, 255));
-        jLabel2.setText("TIENDA GAMER");
-        Cabecera.add(jLabel2, new org.netbeans.lib.awtextra.AbsoluteConstraints(70, 0, 340, 100));
-
         btn_photo.setIcon(new javax.swing.ImageIcon(getClass().getResource("/Images/perfil (1).png"))); // NOI18N
         btn_photo.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
         btn_photo.setInheritsPopupMenu(true);
@@ -552,18 +556,35 @@ public class SystemView extends javax.swing.JFrame {
                 btn_photoActionPerformed(evt);
             }
         });
-        Cabecera.add(btn_photo, new org.netbeans.lib.awtextra.AbsoluteConstraints(660, 10, 70, 80));
+        Cabecera.add(btn_photo, new org.netbeans.lib.awtextra.AbsoluteConstraints(620, 30, 70, 80));
 
-        btn_LoginOut.setFont(new java.awt.Font("Tahoma", 0, 14)); // NOI18N
+        btn_LoginOut.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
         btn_LoginOut.setText("Salir");
         btn_LoginOut.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btn_LoginOutActionPerformed(evt);
             }
         });
-        Cabecera.add(btn_LoginOut, new org.netbeans.lib.awtextra.AbsoluteConstraints(910, 40, -1, 20));
+        Cabecera.add(btn_LoginOut, new org.netbeans.lib.awtextra.AbsoluteConstraints(880, 40, 80, 30));
 
-        getContentPane().add(Cabecera, new org.netbeans.lib.awtextra.AbsoluteConstraints(200, 0, 1010, -1));
+        jLabel64.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        jLabel64.setForeground(new java.awt.Color(255, 255, 255));
+        Cabecera.add(jLabel64, new org.netbeans.lib.awtextra.AbsoluteConstraints(700, 20, 180, 40));
+
+        jLabel65.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
+        jLabel65.setForeground(new java.awt.Color(255, 255, 255));
+        jLabel65.setText("TIENDA GAMER");
+        Cabecera.add(jLabel65, new org.netbeans.lib.awtextra.AbsoluteConstraints(90, 40, 280, 40));
+
+        jLabel63.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        jLabel63.setForeground(new java.awt.Color(255, 255, 255));
+        Cabecera.add(jLabel63, new org.netbeans.lib.awtextra.AbsoluteConstraints(700, 70, 180, 40));
+
+        jLabel67.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
+        jLabel67.setForeground(new java.awt.Color(255, 255, 255));
+        Cabecera.add(jLabel67, new org.netbeans.lib.awtextra.AbsoluteConstraints(700, 70, 180, 40));
+
+        getContentPane().add(Cabecera, new org.netbeans.lib.awtextra.AbsoluteConstraints(200, 0, 1010, 120));
 
         jPanel3.setBackground(new java.awt.Color(255, 255, 255));
         jPanel3.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
@@ -1135,7 +1156,7 @@ public class SystemView extends javax.swing.JFrame {
         });
         jScrollPane10.setViewportView(sales_table);
 
-        jPanel16.add(jScrollPane10, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 350, 910, 140));
+        jPanel16.add(jScrollPane10, new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 360, 910, 140));
 
         jTabbedPane1.addTab("Ventas", jPanel16);
 
@@ -2025,7 +2046,7 @@ public class SystemView extends javax.swing.JFrame {
 
         jTabbedPane1.addTab("Perfil", jPanel14);
 
-        getContentPane().add(jTabbedPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(200, 100, 1010, 580));
+        getContentPane().add(jTabbedPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(200, 80, 1010, 600));
 
         pack();
     }// </editor-fold>//GEN-END:initComponents
@@ -2042,93 +2063,29 @@ public class SystemView extends javax.swing.JFrame {
          }
     }//GEN-LAST:event_btn_LoginOutActionPerformed
 
-    private void txt_product_nameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_product_nameActionPerformed
+    private void btn_modify_dataActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_modify_dataActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_txt_product_nameActionPerformed
+    }//GEN-LAST:event_btn_modify_dataActionPerformed
 
-    private void txt_product_unit_priceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_product_unit_priceActionPerformed
+    private void txt_email_profileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_email_profileActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_txt_product_unit_priceActionPerformed
+    }//GEN-LAST:event_txt_email_profileActionPerformed
 
-    private void txt_product_idActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_product_idActionPerformed
+    private void txt_phone_profileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_phone_profileActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_txt_product_idActionPerformed
+    }//GEN-LAST:event_txt_phone_profileActionPerformed
 
-    private void txt_product_codeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_product_codeActionPerformed
+    private void txt_address_profileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_address_profileActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_txt_product_codeActionPerformed
+    }//GEN-LAST:event_txt_address_profileActionPerformed
 
-    private void btn_register_productActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_register_productActionPerformed
+    private void txt_id_profileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_id_profileActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_btn_register_productActionPerformed
+    }//GEN-LAST:event_txt_id_profileActionPerformed
 
-    private void txt_search_productActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_search_productActionPerformed
+    private void btn_delete_categoryActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_delete_categoryActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_txt_search_productActionPerformed
-
-    private void btn_confirm_purchaseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_confirm_purchaseActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btn_confirm_purchaseActionPerformed
-
-    private void txt_purchase_idActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_purchase_idActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_purchase_idActionPerformed
-
-    private void btn_register_customerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_register_customerActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btn_register_customerActionPerformed
-
-    private void txt_customer_telephoneActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_customer_telephoneActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_customer_telephoneActionPerformed
-
-    private void txt_customer_emailActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_customer_emailActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_customer_emailActionPerformed
-
-    private void btn_register_employeeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_register_employeeActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btn_register_employeeActionPerformed
-
-    private void btn_cancel_employeeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cancel_employeeActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btn_cancel_employeeActionPerformed
-
-    private void txt_employee_usernameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_employee_usernameActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_employee_usernameActionPerformed
-
-    private void txt_employee_telephoneActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_employee_telephoneActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_employee_telephoneActionPerformed
-
-    private void txt_employee_emailActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_employee_emailActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_employee_emailActionPerformed
-
-    private void btn_register_supplierActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_register_supplierActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btn_register_supplierActionPerformed
-
-    private void txt_supplier_nameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_supplier_nameActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_supplier_nameActionPerformed
-
-    private void txt_supplier_emailActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_supplier_emailActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_supplier_emailActionPerformed
-
-    private void txt_supplier_idActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_supplier_idActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_supplier_idActionPerformed
-
-    private void txt_supplier_descriptionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_supplier_descriptionActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_supplier_descriptionActionPerformed
-
-    private void txt_search_supplierActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_search_supplierActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_search_supplierActionPerformed
+    }//GEN-LAST:event_btn_delete_categoryActionPerformed
 
     private void btn_update_categoryActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_update_categoryActionPerformed
         // TODO add your handling code here:
@@ -2138,9 +2095,65 @@ public class SystemView extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_txt_category_idActionPerformed
 
-    private void btn_delete_categoryActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_delete_categoryActionPerformed
+    private void txt_search_supplierActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_search_supplierActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_btn_delete_categoryActionPerformed
+    }//GEN-LAST:event_txt_search_supplierActionPerformed
+
+    private void btn_register_supplierActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_register_supplierActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_register_supplierActionPerformed
+
+    private void txt_supplier_idActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_supplier_idActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_supplier_idActionPerformed
+
+    private void txt_supplier_descriptionActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_supplier_descriptionActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_supplier_descriptionActionPerformed
+
+    private void txt_supplier_emailActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_supplier_emailActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_supplier_emailActionPerformed
+
+    private void txt_supplier_nameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_supplier_nameActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_supplier_nameActionPerformed
+
+    private void btn_cancel_employeeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_cancel_employeeActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_cancel_employeeActionPerformed
+
+    private void btn_register_employeeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_register_employeeActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_register_employeeActionPerformed
+
+    private void txt_employee_emailActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_employee_emailActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_employee_emailActionPerformed
+
+    private void txt_employee_telephoneActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_employee_telephoneActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_employee_telephoneActionPerformed
+
+    private void cmb_rolActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmb_rolActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_cmb_rolActionPerformed
+
+    private void txt_employee_usernameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_employee_usernameActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_employee_usernameActionPerformed
+
+    private void btn_register_customerActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_register_customerActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_register_customerActionPerformed
+
+    private void txt_customer_emailActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_customer_emailActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_customer_emailActionPerformed
+
+    private void txt_customer_telephoneActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_customer_telephoneActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_customer_telephoneActionPerformed
 
     private void txt_customer_addressActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_customer_addressActionPerformed
         // TODO add your handling code here:
@@ -2150,53 +2163,61 @@ public class SystemView extends javax.swing.JFrame {
         // TODO add your handling code here:
     }//GEN-LAST:event_txt_customer_idActionPerformed
 
-    private void cmb_rolActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_cmb_rolActionPerformed
+    private void btn_new_saleActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_new_saleActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_cmb_rolActionPerformed
-
-    private void btn_modify_dataActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_modify_dataActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_btn_modify_dataActionPerformed
-
-    private void txt_id_profileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_id_profileActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_id_profileActionPerformed
-
-    private void txt_address_profileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_address_profileActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_address_profileActionPerformed
-
-    private void txt_phone_profileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_phone_profileActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_phone_profileActionPerformed
-
-    private void txt_email_profileActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_email_profileActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_email_profileActionPerformed
+    }//GEN-LAST:event_btn_new_saleActionPerformed
 
     private void btn_confirm_saleActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_confirm_saleActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_btn_confirm_saleActionPerformed
 
-    private void btn_new_saleActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_new_saleActionPerformed
+    private void txt_sale_priceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_sale_priceActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_btn_new_saleActionPerformed
-
-    private void txt_sale_product_codeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_sale_product_codeActionPerformed
-        // TODO add your handling code here:
-    }//GEN-LAST:event_txt_sale_product_codeActionPerformed
+    }//GEN-LAST:event_txt_sale_priceActionPerformed
 
     private void txt_sale_total_to_payActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_sale_total_to_payActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_txt_sale_total_to_payActionPerformed
 
-    private void txt_sale_priceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_sale_priceActionPerformed
+    private void txt_sale_product_codeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_sale_product_codeActionPerformed
         // TODO add your handling code here:
-    }//GEN-LAST:event_txt_sale_priceActionPerformed
+    }//GEN-LAST:event_txt_sale_product_codeActionPerformed
+
+    private void btn_confirm_purchaseActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_confirm_purchaseActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_confirm_purchaseActionPerformed
+
+    private void txt_purchase_idActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_purchase_idActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_purchase_idActionPerformed
+
+    private void txt_search_productActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_search_productActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_search_productActionPerformed
 
     private void btn_activate_productActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_activate_productActionPerformed
         // TODO add your handling code here:
     }//GEN-LAST:event_btn_activate_productActionPerformed
+
+    private void btn_register_productActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_register_productActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_btn_register_productActionPerformed
+
+    private void txt_product_idActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_product_idActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_product_idActionPerformed
+
+    private void txt_product_unit_priceActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_product_unit_priceActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_product_unit_priceActionPerformed
+
+    private void txt_product_nameActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_product_nameActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_product_nameActionPerformed
+
+    private void txt_product_codeActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_txt_product_codeActionPerformed
+        // TODO add your handling code here:
+    }//GEN-LAST:event_txt_product_codeActionPerformed
 
     /**
      * @param args the command line arguments
@@ -2229,7 +2250,7 @@ public class SystemView extends javax.swing.JFrame {
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel Cabecera;
     private javax.swing.JPanel Logo;
-    private javax.swing.JPanel Menu;
+    public javax.swing.JPanel Menu;
     public javax.swing.JButton btn_LoginOut;
     public javax.swing.JButton btn_activate_product;
     public javax.swing.JButton btn_add_product_sale;
@@ -2279,7 +2300,6 @@ public class SystemView extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel17;
     private javax.swing.JLabel jLabel18;
     private javax.swing.JLabel jLabel19;
-    private javax.swing.JLabel jLabel2;
     private javax.swing.JLabel jLabel20;
     private javax.swing.JLabel jLabel21;
     private javax.swing.JLabel jLabel22;
@@ -2327,6 +2347,10 @@ public class SystemView extends javax.swing.JFrame {
     private javax.swing.JLabel jLabel60;
     private javax.swing.JLabel jLabel61;
     private javax.swing.JLabel jLabel62;
+    public javax.swing.JLabel jLabel63;
+    public javax.swing.JLabel jLabel64;
+    private javax.swing.JLabel jLabel65;
+    public javax.swing.JLabel jLabel67;
     private javax.swing.JLabel jLabel7;
     private javax.swing.JLabel jLabel8;
     private javax.swing.JLabel jLabel9;
@@ -2339,19 +2363,19 @@ public class SystemView extends javax.swing.JFrame {
     public javax.swing.JLabel jLabelSales;
     public javax.swing.JLabel jLabelSettings;
     public javax.swing.JLabel jLabelSupplimers;
-    private javax.swing.JPanel jPanel1;
+    public javax.swing.JPanel jPanel1;
     private javax.swing.JPanel jPanel10;
-    private javax.swing.JPanel jPanel11;
+    public javax.swing.JPanel jPanel11;
     private javax.swing.JPanel jPanel12;
-    private javax.swing.JPanel jPanel13;
+    public javax.swing.JPanel jPanel13;
     private javax.swing.JPanel jPanel14;
-    private javax.swing.JPanel jPanel15;
+    public javax.swing.JPanel jPanel15;
     public javax.swing.JPanel jPanel16;
     private javax.swing.JPanel jPanel17;
     private javax.swing.JPanel jPanel2;
     public javax.swing.JPanel jPanel3;
     private javax.swing.JPanel jPanel4;
-    private javax.swing.JPanel jPanel5;
+    public javax.swing.JPanel jPanel5;
     private javax.swing.JPanel jPanel6;
     private javax.swing.JPanel jPanel7;
     private javax.swing.JPanel jPanel8;

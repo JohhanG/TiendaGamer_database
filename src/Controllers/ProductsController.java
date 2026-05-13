@@ -19,17 +19,20 @@ public class ProductsController implements ActionListener,
     private Products product;
     private ProductsDao productsDao;
     private SystemView views;
+    private SettingsControllers settings; // ← NUEVO
 
     DefaultTableModel model;
 
     public ProductsController(
             Products product,
             ProductsDao productsDao,
-            SystemView views) {
+            SystemView views,
+            SettingsControllers settings) { // ← NUEVO parámetro
 
         this.product     = product;
         this.productsDao = productsDao;
         this.views       = views;
+        this.settings    = settings; // ← NUEVO
 
         model = (DefaultTableModel) views.products_table.getModel();
 
@@ -46,20 +49,32 @@ public class ProductsController implements ActionListener,
         views.txt_product_code.addKeyListener(this);
 
         loadCategories();
-        refreshTable(); // ← usa refreshTable() en lugar de cleanTable()+listAllProducts()
+        refreshTable();
+    }
+
+    // =====================================
+    // VERIFICAR PERMISOS
+    // =====================================
+    private boolean noTienePermisos() {
+        if (settings != null && settings.isAuxiliar()) {
+            JOptionPane.showMessageDialog(
+                    null,
+                    "No tienes permisos de Administrador",
+                    "Message",
+                    JOptionPane.INFORMATION_MESSAGE
+            );
+            return true;
+        }
+        return false;
     }
 
     // =====================================
     // CARGAR CATEGORIAS
     // =====================================
     public void loadCategories() {
-
         CategoriesDao categoriesDao = new CategoriesDao();
-
         views.cmd_categories.removeAllItems();
-
         List<Categories> list = categoriesDao.listCategoriesQuery("");
-
         for (Categories c : list) {
             DynamicComboBox item = new DynamicComboBox(c.getId(), c.getName());
             views.cmd_categories.addItem(item);
@@ -67,9 +82,7 @@ public class ProductsController implements ActionListener,
     }
 
     // =====================================
-    // REFRESH — limpia y recarga en un solo lugar
-    // Usar SIEMPRE este método, nunca llamar
-    // cleanTable() + listAllProducts() por separado
+    // REFRESH
     // =====================================
     private void refreshTable() {
         cleanTable();
@@ -85,19 +98,15 @@ public class ProductsController implements ActionListener,
         if (e.getSource() == views.btn_register_product) {
             registerProduct();
         }
-
         if (e.getSource() == views.btn_update_product) {
             updateProduct();
         }
-
         if (e.getSource() == views.btn_delete_product) {
             deleteProduct();
         }
-
         if (e.getSource() == views.btn_activate_product) {
             activateProduct();
         }
-
         if (e.getSource() == views.btn_cancel_product) {
             cleanFields();
         }
@@ -107,6 +116,7 @@ public class ProductsController implements ActionListener,
     // REGISTRAR
     // =====================================
     private void registerProduct() {
+        if (noTienePermisos()) return; // ← BLOQUEO
 
         if (fieldsEmpty()) {
             JOptionPane.showMessageDialog(null, "Todos los campos son obligatorios");
@@ -134,6 +144,7 @@ public class ProductsController implements ActionListener,
     // MODIFICAR
     // =====================================
     private void updateProduct() {
+        if (noTienePermisos()) return; // ← BLOQUEO
 
         if (views.txt_product_id.getText().isEmpty()) {
             JOptionPane.showMessageDialog(null, "Primero debes seleccionar un producto");
@@ -164,6 +175,7 @@ public class ProductsController implements ActionListener,
     // DESACTIVAR
     // =====================================
     private void deleteProduct() {
+        if (noTienePermisos()) return; // ← BLOQUEO
 
         if (views.txt_product_id.getText().isEmpty()) {
             JOptionPane.showMessageDialog(null, "Selecciona un producto");
@@ -183,6 +195,7 @@ public class ProductsController implements ActionListener,
     // ACTIVAR
     // =====================================
     private void activateProduct() {
+        if (noTienePermisos()) return; // ← BLOQUEO
 
         if (views.txt_product_id.getText().isEmpty()) {
             JOptionPane.showMessageDialog(null, "Selecciona un producto");
@@ -202,13 +215,10 @@ public class ProductsController implements ActionListener,
     // LISTAR
     // =====================================
     public void listAllProducts() {
-
         String search = views.txt_search_product.getText().trim();
-
         List<Products> list = productsDao.listProductsQuery(search);
 
         for (Products p : list) {
-
             Object[] row = {
                 p.getId(),
                 p.getCode(),
@@ -219,7 +229,6 @@ public class ProductsController implements ActionListener,
                 p.getCategory_name(),
                 p.getStatus() == 1 ? "Activo" : "Inactivo"
             };
-
             model.addRow(row);
         }
     }
@@ -229,11 +238,8 @@ public class ProductsController implements ActionListener,
     // =====================================
     @Override
     public void mouseClicked(MouseEvent e) {
-
         int row = views.products_table.getSelectedRow();
-
         if (row >= 0) {
-
             views.txt_product_id.setText(model.getValueAt(row, 0).toString());
             views.txt_product_code.setText(model.getValueAt(row, 1).toString());
             views.txt_product_name.setText(model.getValueAt(row, 2).toString());
@@ -241,7 +247,6 @@ public class ProductsController implements ActionListener,
             views.txt_product_unit_price.setText(model.getValueAt(row, 4).toString());
 
             String categoryName = model.getValueAt(row, 6).toString();
-
             for (int i = 0; i < views.cmd_categories.getItemCount(); i++) {
                 DynamicComboBox item =
                         (DynamicComboBox) views.cmd_categories.getItemAt(i);
@@ -258,12 +263,10 @@ public class ProductsController implements ActionListener,
     // =====================================
     @Override
     public void keyPressed(KeyEvent e) {
-
         if (e.getSource() == views.txt_product_code
                 && e.getKeyCode() == KeyEvent.VK_ENTER) {
 
             String code = views.txt_product_code.getText().trim();
-
             if (code.isEmpty()) return;
 
             Products found = productsDao.searchCode(Integer.parseInt(code));
@@ -286,7 +289,6 @@ public class ProductsController implements ActionListener,
     // =====================================
     @Override
     public void keyReleased(KeyEvent e) {
-
         if (e.getSource() == views.txt_search_product) {
             refreshTable();
         }
@@ -296,13 +298,11 @@ public class ProductsController implements ActionListener,
     // HELPERS
     // =====================================
     public void cleanFields() {
-
         views.txt_product_id.setText("");
         views.txt_product_code.setText("");
         views.txt_product_name.setText("");
         views.txt_product_description.setText("");
         views.txt_product_unit_price.setText("");
-
         if (views.cmd_categories.getItemCount() > 0) {
             views.cmd_categories.setSelectedIndex(0);
         }
