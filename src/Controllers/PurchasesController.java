@@ -101,24 +101,31 @@ public class PurchasesController implements ActionListener,
                         String.format("%.2f", product.getUnit_price()));
                 views.txt_purchase_amount.requestFocus();
             } else {
-                JOptionPane.showMessageDialog(null, "Producto no encontrado o inactivo");
+                JOptionPane.showMessageDialog(null,
+                        "Producto no encontrado o inactivo");
                 cleanFieldsPurchases();
             }
         }
     }
 
     // =========================================
-    // CALCULAR SUBTOTAL
+    // CALCULAR SUBTOTAL AL ESCRIBIR
     // =========================================
     @Override
     public void keyReleased(KeyEvent e) {
         if (e.getSource() == views.txt_purchase_amount
                 || e.getSource() == views.txt_purchase_price) {
 
-            int amount      = parseIntSafe(views.txt_purchase_amount.getText());
-            double price    = parseDoubleSafe(views.txt_purchase_price.getText());
-            double subtotal = amount * price;
-            views.txt_purchase_subtotal.setText(String.format("%.2f", subtotal));
+            String amountText = views.txt_purchase_amount.getText().trim();
+            String priceText  = views.txt_purchase_price.getText().trim();
+
+            if (!amountText.isEmpty() && !priceText.isEmpty()) {
+                int amount      = parseIntSafe(amountText);
+                double price    = parseDoubleSafe(priceText);
+                double subtotal = amount * price;
+                views.txt_purchase_subtotal.setText(
+                        String.format("%.2f", subtotal));
+            }
         }
     }
 
@@ -138,17 +145,20 @@ public class PurchasesController implements ActionListener,
         double price  = parseDoubleSafe(views.txt_purchase_price.getText());
 
         if (amount <= 0) {
-            JOptionPane.showMessageDialog(null, "La cantidad debe ser mayor a 0");
+            JOptionPane.showMessageDialog(null,
+                    "La cantidad debe ser mayor a 0");
             return;
         }
         if (price <= 0) {
-            JOptionPane.showMessageDialog(null, "El precio no puede ser 0");
+            JOptionPane.showMessageDialog(null,
+                    "El precio no puede ser 0");
             return;
         }
 
         double subtotal = amount * price;
 
-        String supplierName = (String) views.cmb_purchase_supplier.getSelectedItem();
+        String supplierName =
+                (String) views.cmb_purchase_supplier.getSelectedItem();
         if (supplierName == null || supplierName.isEmpty()) {
             JOptionPane.showMessageDialog(null, "Selecciona un proveedor");
             return;
@@ -181,22 +191,23 @@ public class PurchasesController implements ActionListener,
 
         // Verificar si el producto ya fue agregado
         for (int i = 0; i < model.getRowCount(); i++) {
-            if (Integer.parseInt(model.getValueAt(i, 0).toString()) == productId) {
+            if (Integer.parseInt(
+                    model.getValueAt(i, 0).toString()) == productId) {
                 JOptionPane.showMessageDialog(null,
                         "Este producto ya fue agregado a la lista.");
                 return;
             }
         }
 
-        ArrayList<Object> row = new ArrayList<>();
-        row.add(productId);
-        row.add(views.txt_purchase_product_name.getText());
-        row.add(amount);
-        row.add(String.format("%.2f", price));
-        row.add(String.format("%.2f", subtotal));
-        row.add(supplierName);
+        model.addRow(new Object[]{
+            productId,
+            views.txt_purchase_product_name.getText(),
+            amount,
+            String.format("%.2f", price),
+            String.format("%.2f", subtotal),
+            supplierName
+        });
 
-        model.addRow(row.toArray());
         calculateTotal();
         cleanFieldsPurchases();
         views.txt_purchase_product_code.requestFocus();
@@ -208,7 +219,8 @@ public class PurchasesController implements ActionListener,
     private void removeProductFromTable() {
         int row = views.purchases_table.getSelectedRow();
         if (row == -1) {
-            JOptionPane.showMessageDialog(null, "Selecciona una fila para eliminar");
+            JOptionPane.showMessageDialog(null,
+                    "Selecciona una fila para eliminar");
             return;
         }
         model.removeRow(row);
@@ -226,16 +238,20 @@ public class PurchasesController implements ActionListener,
     // CONFIRMAR COMPRA
     // =========================================
     private void insertPurchase() {
+
         if (model.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(null, "No hay productos en la lista");
+            JOptionPane.showMessageDialog(null,
+                    "No hay productos en la lista");
             return;
         }
 
-        double total = parseDoubleSafe(views.txt_purchase_total_to_pay.getText());
+        double total = parseDoubleSafe(
+                views.txt_purchase_total_to_pay.getText());
 
         int confirm = JOptionPane.showConfirmDialog(
                 null,
-                "¿Confirmar compra por un total de $" + String.format("%.2f", total) + "?",
+                "¿Confirmar compra por un total de $"
+                        + String.format("%.2f", total) + "?",
                 "Confirmar compra",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.QUESTION_MESSAGE
@@ -243,21 +259,36 @@ public class PurchasesController implements ActionListener,
 
         if (confirm != JOptionPane.YES_OPTION) return;
 
-        // ✅ Retorna el ID directamente
-        int purchaseId = purchaseDao.registerPurchaseQuery(getIdSupplier, id_user, total);
+        int purchaseId = purchaseDao.registerPurchaseQuery(
+                getIdSupplier, id_user, total);
 
         if (purchaseId > 0) {
-            for (int i = 0; i < model.getRowCount(); i++) {
-                int pid          = Integer.parseInt(model.getValueAt(i, 0).toString());
-                int amt          = Integer.parseInt(model.getValueAt(i, 2).toString());
-                double unitPrice = parseDoubleSafe(model.getValueAt(i, 3).toString());
-                double sub       = parseDoubleSafe(model.getValueAt(i, 4).toString());
 
-                purchaseDao.registerPurchaseDetailQuery(purchaseId, pid, amt, unitPrice, sub);
-                // ✅ Actualizar stock
-                productsDao.updatePurchaseStockQuery(amt, pid);
+            boolean allOk = true;
+
+            for (int i = 0; i < model.getRowCount(); i++) {
+                int pid          = parseIntSafe(
+                        model.getValueAt(i, 0).toString());
+                int amt          = parseIntSafe(
+                        model.getValueAt(i, 2).toString());
+                double unitPrice = parseDoubleSafe(
+                        model.getValueAt(i, 3).toString());
+                double sub       = parseDoubleSafe(
+                        model.getValueAt(i, 4).toString());
+
+                boolean detailOk = purchaseDao.registerPurchaseDetailQuery(
+                        purchaseId, pid, amt, unitPrice, sub);
+                boolean stockOk  = productsDao.updatePurchaseStockQuery(
+                        amt, pid);
+
+                System.out.println("Producto ID " + pid
+                        + " → detalle: " + detailOk
+                        + " | stock: "   + stockOk);
+
+                if (!detailOk || !stockOk) allOk = false;
             }
 
+            // Limpiar formulario
             cleanTableTemp();
             cleanFieldsPurchases();
             views.txt_purchase_total_to_pay.setText("");
@@ -265,12 +296,21 @@ public class PurchasesController implements ActionListener,
             getIdSupplier = 0;
             loadSuppliers();
 
-            // ✅ REFRESCAR TABLA DE PRODUCTOS INMEDIATAMENTE
+            if (allOk) {
+                JOptionPane.showMessageDialog(null,
+                        "¡Compra registrada correctamente!");
+            } else {
+                JOptionPane.showMessageDialog(null,
+                        "Compra registrada pero algunos detalles "
+                        + "fallaron. Revisa la consola.");
+            }
+
+            // ✅ Refrescar tabla de productos DESPUÉS del mensaje
             refreshProductsTable();
 
-            JOptionPane.showMessageDialog(null, "¡Compra registrada correctamente!");
         } else {
-            JOptionPane.showMessageDialog(null, "Error al registrar la compra");
+            JOptionPane.showMessageDialog(null,
+                    "Error al registrar la compra");
         }
     }
 
@@ -294,22 +334,40 @@ public class PurchasesController implements ActionListener,
         for (int i = 0; i < model.getRowCount(); i++) {
             total += parseDoubleSafe(model.getValueAt(i, 4).toString());
         }
-        views.txt_purchase_total_to_pay.setText(String.format("%.2f", total));
+        views.txt_purchase_total_to_pay.setText(
+                String.format("%.2f", total));
     }
 
     // =========================================
-    // ✅ REFRESCAR TABLA DE PRODUCTOS
+    // ✅ REFRESCAR TABLA DE PRODUCTOS — CORREGIDO
     // =========================================
     private void refreshProductsTable() {
-        try {
-            DefaultTableModel productModel =
-                    (DefaultTableModel) views.products_table.getModel();
-            productModel.setRowCount(0);
 
+        if (views.products_table == null) {
+            System.out.println("products_table es null");
+            return;
+        }
+
+        DefaultTableModel productModel =
+                (DefaultTableModel) views.products_table.getModel();
+
+        if (productModel == null) {
+            System.out.println("El modelo de products_table es null");
+            return;
+        }
+
+        productModel.setRowCount(0);
+
+        try {
             List<Products> list = productsDao.listProductsQuery("");
 
+            if (list == null || list.isEmpty()) {
+                System.out.println("listProductsQuery retornó vacío");
+                return;
+            }
+
             for (Products p : list) {
-                Object[] row = {
+                productModel.addRow(new Object[]{
                     p.getId(),
                     p.getCode(),
                     p.getName(),
@@ -318,11 +376,16 @@ public class PurchasesController implements ActionListener,
                     p.getProduct_quantity(),
                     p.getCategory_name(),
                     p.getStatus() == 1 ? "Activo" : "Inactivo"
-                };
-                productModel.addRow(row);
+                });
             }
+
+            System.out.println("Tabla de productos refrescada: "
+                    + list.size() + " filas");
+
         } catch (Exception e) {
-            System.out.println("No se pudo refrescar tabla de productos: " + e.getMessage());
+            System.out.println("Error en refreshProductsTable: "
+                    + e.getMessage());
+            e.printStackTrace();
         }
     }
 
@@ -351,8 +414,9 @@ public class PurchasesController implements ActionListener,
     }
 
     private double parseDoubleSafe(String text) {
-        try { return Double.parseDouble(text.trim().replace(",", ".")); }
-        catch (Exception e) { return 0; }
+        try {
+            return Double.parseDouble(text.trim().replace(",", "."));
+        } catch (Exception e) { return 0; }
     }
 
     @Override public void mouseClicked(MouseEvent e)  {}

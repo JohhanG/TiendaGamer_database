@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
@@ -19,29 +20,38 @@ public class SalesDao {
 
     // =========================
     // REGISTRAR VENTA
+    // ✅ Retorna el ID generado directamente
     // =========================
-    public boolean registerSaleQuery(Sales sale) {
+    public int registerSaleQuery(Sales sale) {
 
         String query = "INSERT INTO sales(customer_id, employee_id, total, sale_date) VALUES(?,?,?,?)";
-
         Timestamp dateTime = new Timestamp(new Date().getTime());
 
         try {
             conn = cn.getConnection();
-            pst = conn.prepareStatement(query);
+            pst  = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 
             pst.setInt(1, sale.getCustomer_id());
             pst.setInt(2, sale.getEmployee_id());
             pst.setDouble(3, sale.getTotal_to_pay());
             pst.setTimestamp(4, dateTime);
 
-            pst.execute();
-            return true;
+            pst.executeUpdate();
+
+            rs = pst.getGeneratedKeys();
+            if (rs.next()) {
+                return rs.getInt(1); // ✅ ID real
+            }
 
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, e.getMessage());
-            return false;
+        } finally {
+            try { if (rs   != null) rs.close();   } catch (SQLException ignored) {}
+            try { if (pst  != null) pst.close();  } catch (SQLException ignored) {}
+            try { if (conn != null) conn.close();  } catch (SQLException ignored) {}
         }
+
+        return 0;
     }
 
     // =========================
@@ -54,11 +64,12 @@ public class SalesDao {
             double sale_price,
             double sale_subtotal) {
 
-        String query = "INSERT INTO sale_details(product_id,sale_id,sale_quantity,sale_price,sale_subtotal) VALUES(?,?,?,?,?)";
+        String query = "INSERT INTO sale_details(product_id, sale_id, sale_quantity, sale_price, sale_subtotal) "
+                     + "VALUES(?,?,?,?,?)";
 
         try {
             conn = cn.getConnection();
-            pst = conn.prepareStatement(query);
+            pst  = conn.prepareStatement(query);
 
             pst.setInt(1, product_id);
             pst.setInt(2, sale_id);
@@ -72,32 +83,10 @@ public class SalesDao {
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, e.getMessage());
             return false;
+        } finally {
+            try { if (pst  != null) pst.close();  } catch (SQLException ignored) {}
+            try { if (conn != null) conn.close();  } catch (SQLException ignored) {}
         }
-    }
-
-    // =========================
-    // ÚLTIMO ID
-    // =========================
-    public int saleID() {
-
-        int id = 0;
-
-        String query = "SELECT MAX(id) AS id FROM sales";
-
-        try {
-            conn = cn.getConnection();
-            pst = conn.prepareStatement(query);
-            rs = pst.executeQuery();
-
-            if (rs.next()) {
-                id = rs.getInt("id");
-            }
-
-        } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, e.getMessage());
-        }
-
-        return id;
     }
 
     // =========================
@@ -107,37 +96,37 @@ public class SalesDao {
 
         List<Sales> list = new ArrayList<>();
 
-        String query =
-                "SELECT s.id AS invoice, " +
-                "c.full_name AS customer, " +
-                "e.full_name AS employee, " +
-                "s.total, " +
-                "s.sale_date " +
-                "FROM sales s " +
-                "INNER JOIN customers c ON s.customer_id = c.id " +
-                "INNER JOIN employees e ON s.employee_id = e.id " +
-                "ORDER BY s.id ASC";
+        String query = "SELECT s.id AS invoice, "
+                     + "c.full_name AS customer, "
+                     + "e.full_name AS employee, "
+                     + "s.total, "
+                     + "s.sale_date "
+                     + "FROM sales s "
+                     + "INNER JOIN customers c ON s.customer_id = c.id "
+                     + "INNER JOIN employees e ON s.employee_id = e.id "
+                     + "ORDER BY s.id ASC";
 
         try {
             conn = cn.getConnection();
-            pst = conn.prepareStatement(query);
-            rs = pst.executeQuery();
+            pst  = conn.prepareStatement(query);
+            rs   = pst.executeQuery();
 
             while (rs.next()) {
-
                 Sales sale = new Sales();
-
                 sale.setId(rs.getInt("invoice"));
                 sale.setCustomer_name(rs.getString("customer"));
                 sale.setEmployee_name(rs.getString("employee"));
                 sale.setTotal_to_pay(rs.getDouble("total"));
                 sale.setSale_date(rs.getString("sale_date"));
-
                 list.add(sale);
             }
 
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, e.getMessage());
+        } finally {
+            try { if (rs   != null) rs.close();   } catch (SQLException ignored) {}
+            try { if (pst  != null) pst.close();  } catch (SQLException ignored) {}
+            try { if (conn != null) conn.close();  } catch (SQLException ignored) {}
         }
 
         return list;
