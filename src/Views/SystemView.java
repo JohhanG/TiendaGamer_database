@@ -19,15 +19,18 @@ public class SystemView extends javax.swing.JFrame {
      */
 public SystemView(Models.Employees loggedEmployee) {
     initComponents();
+    Menu.setName("Menu");       // proteger color morado del menú
+    Cabecera.setName("Cabecera");  // proteger color morado del header
+    Logo.setName("Logo");          // proteger logo
     setSize(1208, 680);
     setResizable(false);
     setTitle("Panel de Administracion");
     setLocationRelativeTo(null);
- 
+
     // NOMBRE Y ROL EN EL HEADER
     jLabel63.setText(loggedEmployee.getFull_name());
     jLabel64.setText(loggedEmployee.getRol());
- 
+
     // MODELOS
     Models.Employees employee          = new Models.Employees();
     Models.EmployeesDao employeesDao   = new Models.EmployeesDao();
@@ -43,47 +46,71 @@ public SystemView(Models.Employees loggedEmployee) {
     Models.PurchasesDao purchaseDao    = new Models.PurchasesDao();
     Models.Customers customer          = new Models.Customers();
     Models.CustomersDao customersDao   = new Models.CustomersDao();
- 
+
     // SETTINGS PRIMERO (controla visibilidad por rol)
     Controllers.SettingsControllers setting =
             new Controllers.SettingsControllers(this, loggedEmployee);
- 
+
     // CONTROLLERS
     Controllers.EmployeesController employeeController =
             new Controllers.EmployeesController(employee, employeesDao, this);
- 
+
     Controllers.SuppliersController supplierController =
             new Controllers.SuppliersController(supplier, suppliersDao, this);
- 
+
     Controllers.CategoriesController categoryController =
             new Controllers.CategoriesController(category, categoryDao, this);
- 
+
     Controllers.ProductsController productController =
             new Controllers.ProductsController(product, productsDao, this, setting);
- 
+
     Controllers.CustomersController customerController =
             new Controllers.CustomersController(customer, customersDao, this);
- 
+
     Controllers.SalesController salesController =
             new Controllers.SalesController(sale, salesDao, this);
- 
+
     Controllers.PurchasesController purchasesController =
             new Controllers.PurchasesController(purchase, purchaseDao, this);
- 
-    // REPORTES — carga ventas y compras
+
+    // REPORTES
     Controllers.ReportsController reportsController =
             new Controllers.ReportsController(this);
- 
-    // Refrescar reportes cada vez que se abre la pestaña
+
+    // Refrescar reportes al abrir la pestaña
     jTabbedPane1.addChangeListener(e -> {
         int selected = jTabbedPane1.getSelectedIndex();
-        // TAB_REPORTS = 6 según SettingsControllers
         if (selected == 6) {
             reportsController.loadSales();
             reportsController.loadPurchases();
         }
     });
- 
+
+    // =============================================
+    // TOGGLE MODO OSCURO — en panel Configuraciones
+    // =============================================
+    javax.swing.JLabel lblTheme = new javax.swing.JLabel("Tema de la aplicación:");
+    lblTheme.setFont(new java.awt.Font("Tahoma", 1, 14));
+
+    Views.ToggleSwitch toggleTheme = new Views.ToggleSwitch();
+
+    javax.swing.JLabel lblThemeDesc = new javax.swing.JLabel("Claro");
+    lblThemeDesc.setFont(new java.awt.Font("Tahoma", 0, 13));
+
+    toggleTheme.setOnToggle(() -> {
+        boolean dark = toggleTheme.isDarkMode();
+        Views.ThemeManager.apply(this, dark);
+        lblThemeDesc.setText(dark ? "Oscuro" : "Claro");
+    });
+
+    // Agregar al panel de configuraciones (jPanel14)
+    jPanel14.add(lblTheme,
+            new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 430, 220, 30));
+    jPanel14.add(toggleTheme,
+            new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 430, 70, 34));
+    jPanel14.add(lblThemeDesc,
+            new org.netbeans.lib.awtextra.AbsoluteConstraints(355, 435, 80, 25));
+
     this.repaint();
 }
     @SuppressWarnings("unchecked")
