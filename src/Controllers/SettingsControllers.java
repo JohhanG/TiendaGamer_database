@@ -1,6 +1,7 @@
 package Controllers;
 
 import Models.Employees;
+import Models.EmployeesDao;
 import Views.SystemView;
 import java.awt.Color;
 import java.awt.Component;
@@ -9,6 +10,7 @@ import java.awt.Graphics;
 import java.awt.Graphics2D;
 import java.awt.Insets;
 import java.awt.RenderingHints;
+import java.awt.event.ActionEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
 import javax.swing.JLabel;
@@ -19,6 +21,7 @@ public class SettingsControllers {
 
     private SystemView views;
     private Employees loggedEmployee;
+    private EmployeesDao employeesDao;
 
     private final Color TEXT_NORMAL = Color.WHITE;
     private final Color TEXT_ACTIVE = Color.WHITE;
@@ -28,7 +31,6 @@ public class SettingsControllers {
 
     private JLabel activeLabel = null;
 
-    // Orden real de las pestañas del JTabbedPane
     private static final int TAB_PURCHASES  = 0;
     private static final int TAB_SALES      = 1;
     private static final int TAB_CUSTOMERS  = 2;
@@ -40,10 +42,10 @@ public class SettingsControllers {
     private static final int TAB_PRODUCTS   = 8;
 
     public SettingsControllers(SystemView views, Employees loggedEmployee) {
-        this.views          = views;
-        this.loggedEmployee = loggedEmployee;
+        this.views           = views;
+        this.loggedEmployee  = loggedEmployee;
+        this.employeesDao    = new EmployeesDao(); // ✅
 
-        // Mostrar Productos por defecto
         views.jTabbedPane1.setSelectedIndex(TAB_PRODUCTS);
         setActive(views.jLabelProducts);
 
@@ -62,6 +64,70 @@ public class SettingsControllers {
             lockLabel(views.jLabelSupplimers);
             lockLabel(views.jLabelCategories);
             lockProductButtons();
+        }
+
+        // ✅ Cargar datos del perfil al iniciar
+        loadProfileData();
+
+        // ✅ Botón Modificar — solo cambia la contraseña
+        views.btn_modify_data.addActionListener((ActionEvent e) -> updatePassword());
+    }
+
+    // ✅ Carga los datos del empleado logueado en los campos de perfil
+    private void loadProfileData() {
+        try {
+            views.txt_id_profile.setText(
+                    String.valueOf(loggedEmployee.getId()));
+            views.txt_name_profile.setText(
+                    loggedEmployee.getFull_name());
+            views.txt_address_profile.setText(
+                    loggedEmployee.getAddress());
+            views.txt_phone_profile.setText(
+                    loggedEmployee.getTelephone());
+            views.txt_email_profile.setText(
+                    loggedEmployee.getEmail());
+        } catch (Exception e) {
+            System.out.println("Error cargando perfil: " + e.getMessage());
+        }
+    }
+
+    // ✅ Solo actualiza la contraseña
+    private void updatePassword() {
+        String newPass     = new String(
+                views.txt_password_modify.getPassword()).trim();
+        String confirmPass = new String(
+                views.txt_password_modify_confirm.getPassword()).trim();
+
+        if (newPass.isEmpty() || confirmPass.isEmpty()) {
+            JOptionPane.showMessageDialog(null,
+                    "Ingresa y confirma la nueva contraseña");
+            return;
+        }
+
+        if (!newPass.equals(confirmPass)) {
+            JOptionPane.showMessageDialog(null,
+                    "Las contraseñas no coinciden");
+            return;
+        }
+
+        if (newPass.length() < 4) {
+            JOptionPane.showMessageDialog(null,
+                    "La contraseña debe tener al menos 4 caracteres");
+            return;
+        }
+
+        // ✅ Usa el método existente en EmployeesDao
+        loggedEmployee.setPassword(newPass);
+        boolean ok = employeesDao.updateEmployeePassword(loggedEmployee);
+
+        if (ok) {
+            JOptionPane.showMessageDialog(null,
+                    "Contraseña actualizada correctamente");
+            views.txt_password_modify.setText("");
+            views.txt_password_modify_confirm.setText("");
+        } else {
+            JOptionPane.showMessageDialog(null,
+                    "Error al actualizar la contraseña");
         }
     }
 
@@ -93,7 +159,6 @@ public class SettingsControllers {
 
     private void addNavListener(JLabel label, int tabIndex, boolean adminOnly) {
         label.addMouseListener(new MouseAdapter() {
-
             @Override
             public void mouseClicked(MouseEvent e) {
                 if (adminOnly && isAuxiliar()) {

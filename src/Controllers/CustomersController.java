@@ -52,12 +52,31 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
         }
     }
 
+    // ✅ Validar que la cédula sea numérica y no exceda 10 dígitos
+    private boolean validarCedula(String cedula) {
+        if (!cedula.matches("\\d+")) {
+            JOptionPane.showMessageDialog(null,
+                    "La identificación solo puede contener números");
+            return false;
+        }
+        if (cedula.length() > 10) {
+            JOptionPane.showMessageDialog(null,
+                    "La identificación no puede tener más de 10 dígitos");
+            return false;
+        }
+        return true;
+    }
+
     private void registerCustomer() {
         if (emptyFields()) {
             JOptionPane.showMessageDialog(null, "Todos los campos son obligatorios");
             return;
         }
-        customer.setId(Integer.parseInt(views.txt_customer_id.getText().trim()));
+
+        String cedula = views.txt_customer_id.getText().trim();
+        if (!validarCedula(cedula)) return; // ✅ Validación
+
+        customer.setId(Integer.parseInt(cedula));
         customer.setFull_name(views.txt_customer_fullname.getText().trim());
         customer.setAddress(views.txt_customer_address.getText().trim());
         customer.setEmail(views.txt_customer_email.getText().trim());
@@ -81,7 +100,11 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
             JOptionPane.showMessageDialog(null, "Todos los campos son obligatorios");
             return;
         }
-        customer.setId(Integer.parseInt(views.txt_customer_id.getText().trim()));
+
+        String cedula = views.txt_customer_id.getText().trim();
+        if (!validarCedula(cedula)) return; // ✅ Validación
+
+        customer.setId(Integer.parseInt(cedula));
         customer.setFull_name(views.txt_customer_fullname.getText().trim());
         customer.setAddress(views.txt_customer_address.getText().trim());
         customer.setEmail(views.txt_customer_email.getText().trim());
@@ -101,15 +124,18 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
     private void deleteCustomer() {
         int row = views.custormers_table.getSelectedRow();
         if (row == -1) {
-            JOptionPane.showMessageDialog(null, "Selecciona un cliente para eliminarlo");
+            JOptionPane.showMessageDialog(null,
+                    "Selecciona un cliente para eliminarlo");
             return;
         }
         String nombre = views.custormers_table.getValueAt(row, 1).toString();
-        int id = Integer.parseInt(views.custormers_table.getValueAt(row, 0).toString());
+        int id = Integer.parseInt(
+                views.custormers_table.getValueAt(row, 0).toString());
 
         int confirm = JOptionPane.showConfirmDialog(
                 null,
-                "¿Estás seguro de que deseas eliminar al cliente \"" + nombre + "\"?\nEsta acción no se puede deshacer.",
+                "¿Estás seguro de que deseas eliminar al cliente \""
+                        + nombre + "\"?\nEsta acción no se puede deshacer.",
                 "Confirmar eliminación",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE
@@ -126,20 +152,18 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
         }
     }
 
-    // Orden columnas tabla: Identificacion | Nombre | Telefono | Direccion | Correo
     public void listAllCustomers() {
         List<Customers> list = customersDao.listCustomersQuery(
                 views.txt_search_customers.getText().trim()
         );
         for (Customers c : list) {
-            Object[] row = {
-                c.getId(),           // col 0: Identificacion
-                c.getFull_name(),    // col 1: Nombre
-                c.getTelephone(),    // col 2: Telefono
-                c.getAddress(),      // col 3: Direccion
-                c.getEmail()         // col 4: Correo
-            };
-            model.addRow(row);
+            model.addRow(new Object[]{
+                c.getId(),
+                c.getFull_name(),
+                c.getTelephone(),
+                c.getAddress(),
+                c.getEmail()
+            });
         }
     }
 
@@ -148,17 +172,21 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
         listAllCustomers();
     }
 
-    // col0=Identificacion, col1=Nombre, col2=Telefono, col3=Direccion, col4=Correo
     @Override
     public void mouseClicked(MouseEvent me) {
         if (me.getSource() == views.custormers_table) {
             int row = views.custormers_table.rowAtPoint(me.getPoint());
             if (row >= 0) {
-                views.txt_customer_id.setText(views.custormers_table.getValueAt(row, 0).toString());
-                views.txt_customer_fullname.setText(views.custormers_table.getValueAt(row, 1).toString());
-                views.txt_customer_telephone.setText(views.custormers_table.getValueAt(row, 2).toString());
-                views.txt_customer_address.setText(views.custormers_table.getValueAt(row, 3).toString());
-                views.txt_customer_email.setText(views.custormers_table.getValueAt(row, 4).toString());
+                views.txt_customer_id.setText(
+                        views.custormers_table.getValueAt(row, 0).toString());
+                views.txt_customer_fullname.setText(
+                        views.custormers_table.getValueAt(row, 1).toString());
+                views.txt_customer_telephone.setText(
+                        views.custormers_table.getValueAt(row, 2).toString());
+                views.txt_customer_address.setText(
+                        views.custormers_table.getValueAt(row, 3).toString());
+                views.txt_customer_email.setText(
+                        views.custormers_table.getValueAt(row, 4).toString());
                 views.btn_register_customer.setEnabled(false);
                 views.txt_customer_id.setEditable(false);
             }
