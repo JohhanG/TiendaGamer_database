@@ -203,8 +203,6 @@ Permite consultar información detallada de un commit y sus cambios.
 
 ---
 
-# Programación
-
 ## 15. ¿Cuáles son los tipos de datos primitivos en Java?
 
 Los ocho tipos de datos primitivos son:
