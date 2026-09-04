@@ -487,26 +487,7 @@ public class InvertirCadena {
 
 ---
 
-# Estructura del proyecto
 
-```text
-Taller-Nivelacion-PI-a-PII/
-│
-├── README.md
-│
-├── ejercicios/
-│   │
-│   ├── calculadora/
-│   │   └── Calculadora.java
-│   │
-│   ├── vocales-consonantes/
-│   │   └── VocalesConsonantes.java
-│   │
-│   └── invertir-cadena/
-│       └── InvertirCadena.java
-│
-└── .gitignore
-```
 
 # Comandos utilizados
 
