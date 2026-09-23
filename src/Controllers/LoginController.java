@@ -17,11 +17,9 @@ public class LoginController implements ActionListener {
     public LoginController(Employees employee,
             EmployeesDao employeeDao,
             LoginView login) {
-
-        this.employee = employee;
+        this.employee    = employee;
         this.employeeDao = employeeDao;
-        this.login = login;
-
+        this.login       = login;
         login.btn_enter.addActionListener(this);
     }
 
@@ -33,27 +31,62 @@ public class LoginController implements ActionListener {
     }
 
     private void loginSystem() {
-
         String username = login.txt_userName.getText().trim();
-        String password = String.valueOf(login.txt_password.getPassword());
+        String password = String.valueOf(
+                login.txt_password.getPassword()).trim();
 
         if (username.isEmpty() || password.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "Complete todos los campos");
+            JOptionPane.showMessageDialog(null,
+                    "Complete todos los campos");
+            return;
+        }
+
+        // ✅ Verificar si cuenta está bloqueada
+        if (employeeDao.isAccountLocked(username)) {
+            JOptionPane.showMessageDialog(null,
+                    "Tu cuenta está bloqueada por demasiados intentos fallidos.\n"
+                    + "Contacta al administrador.",
+                    "Cuenta bloqueada",
+                    JOptionPane.ERROR_MESSAGE);
             return;
         }
 
         Employees access = employeeDao.loginQuery(username, password);
 
         if (access.getId() > 0) {
-            login.dispose();
+            // ✅ Login exitoso — resetear intentos
+            employeeDao.resetFailedAttempts(username);
 
-            // Se pasa el empleado logueado al SystemView para manejar rol y perfil
+            // ✅ Registrar actividad
+            employeeDao.logActivity(access.getId(),
+                    "Inicio de sesión: " + username);
+
+            login.dispose();
             SystemView system = new SystemView(access);
             system.setLocationRelativeTo(null);
             system.setVisible(true);
 
         } else {
-            JOptionPane.showMessageDialog(null, "Usuario o contraseña incorrectos");
+            // ✅ Login fallido — incrementar intentos
+            employeeDao.incrementFailedAttempts(username);
+            employeeDao.checkAndLockAccount(username);
+
+            // Verificar si se bloqueó en este intento
+            if (employeeDao.isAccountLocked(username)) {
+                JOptionPane.showMessageDialog(null,
+                        "Has excedido el número de intentos.\n"
+                        + "Tu cuenta ha sido bloqueada.\n"
+                        + "Contacta al administrador.",
+                        "Cuenta bloqueada",
+                        JOptionPane.ERROR_MESSAGE);
+            } else {
+                // Obtener intentos restantes
+                JOptionPane.showMessageDialog(null,
+                        "Usuario o contraseña incorrectos.\n"
+                        + "Tu cuenta se bloqueará después de 3 intentos fallidos.",
+                        "Error de acceso",
+                        JOptionPane.WARNING_MESSAGE);
+            }
         }
     }
 }

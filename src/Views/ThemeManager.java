@@ -24,8 +24,8 @@ public class ThemeManager {
     private static final Color DARK_GRID      = new Color(80, 80, 80);
     private static final Color DARK_SEL_BG    = new Color(75, 110, 175);
     private static final Color DARK_HEADER_BG = new Color(50, 52, 54);
-    private static final Color DARK_MENU_BG   = new Color(45, 45, 48);
-    private static final Color DARK_CAB_BG    = new Color(35, 35, 38);
+    private static final Color DARK_MENU_BG   = new Color(24, 24, 38);
+    private static final Color DARK_CAB_BG    = new Color(30, 27, 75);
 
     public static void apply(JFrame frame, boolean dark) {
         darkMode = dark;
@@ -134,18 +134,18 @@ public class ThemeManager {
                     if (dark) {
                         panel.setBackground(DARK_CAB_BG);
                     } else {
-                        // Restaurar color morado original guardado
+                        // Restaurar color morado/índigo original guardado
                         Color orig = originalColors.get("Cabecera");
-                        panel.setBackground(orig != null ? orig : new Color(153, 153, 255));
+                        panel.setBackground(orig != null ? orig : new Color(79, 70, 229));
                     }
 
                 } else if (name != null && name.equals("Menu")) {
                     if (dark) {
                         panel.setBackground(DARK_MENU_BG);
                     } else {
-                        // Restaurar color morado original guardado
+                        // Restaurar color original guardado
                         Color orig = originalColors.get("Menu");
-                        panel.setBackground(orig != null ? orig : new Color(153, 153, 255));
+                        panel.setBackground(orig != null ? orig : new Color(24, 24, 38));
                     }
 
                 } else {

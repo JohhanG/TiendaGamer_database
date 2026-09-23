@@ -3,116 +3,244 @@
  * Click nbfs://nbhost/SystemFileSystem/Templates/GUIForms/JFrame.java to edit this template
  */
 package Views;
- 
+
 /**
  *
  * @author Richa
  */
 public class SystemView extends javax.swing.JFrame {
- 
+
     private static final java.util.logging.Logger logger =
             java.util.logging.Logger.getLogger(SystemView.class.getName());
- 
+    private Models.Employees loggedEmployee;
+
     /**
      * Creates new form SystemView
      * Recibe el empleado logueado para navegación y control de permisos
      */
-public SystemView(Models.Employees loggedEmployee) {
-    initComponents();
-    Menu.setName("Menu");       // proteger color morado del menú
-    Cabecera.setName("Cabecera");  // proteger color morado del header
-    Logo.setName("Logo");          // proteger logo
-    setSize(1208, 680);
-    setResizable(false);
-    setTitle("Panel de Administracion");
-    setLocationRelativeTo(null);
+    public SystemView(Models.Employees loggedEmployee) {
+        this.loggedEmployee = loggedEmployee;
+        initComponents();
+        setupModernMenu();
+        Menu.setName("Menu");       // proteger color del menú
+        Cabecera.setName("Cabecera");  // proteger color del header
+        Logo.setName("Logo");          // proteger logo
+        setSize(1208, 680);
+        setResizable(false);
+        setTitle("Panel de Administracion");
+        setLocationRelativeTo(null);
 
-    // NOMBRE Y ROL EN EL HEADER
-    jLabel63.setText(loggedEmployee.getFull_name());
-    jLabel64.setText(loggedEmployee.getRol());
+        // NOMBRE, ROL Y FOTO EN EL HEADER
+        setupHeaderProfile();
 
-    // MODELOS
-    Models.Employees employee          = new Models.Employees();
-    Models.EmployeesDao employeesDao   = new Models.EmployeesDao();
-    Models.Suppliers supplier          = new Models.Suppliers();
-    Models.SuppliersDao suppliersDao   = new Models.SuppliersDao();
-    Models.Categories category         = new Models.Categories();
-    Models.CategoriesDao categoryDao   = new Models.CategoriesDao();
-    Models.Products product            = new Models.Products();
-    Models.ProductsDao productsDao     = new Models.ProductsDao();
-    Models.Sales sale                  = new Models.Sales();
-    Models.SalesDao salesDao           = new Models.SalesDao();
-    Models.Purchases purchase          = new Models.Purchases();
-    Models.PurchasesDao purchaseDao    = new Models.PurchasesDao();
-    Models.Customers customer          = new Models.Customers();
-    Models.CustomersDao customersDao   = new Models.CustomersDao();
+        // =========================================================
+        // AGREGAR COLUMNA "ESTADO" A LAS TABLAS DE VENTAS Y COMPRAS
+        // =========================================================
+        // Reemplazamos el modelo completo (no solo addColumn) porque el
+        // modelo generado por NetBeans trae un arreglo interno de tamaño
+        // fijo (canEdit[]) para isCellEditable() que no se actualiza al
+        // usar addColumn(), y provoca ArrayIndexOutOfBoundsException al
+        // hacer clic en una columna nueva.
+        replaceModelWithSafeVersion(sales_table, "Estado");
+        replaceModelWithSafeVersion(purchases_table, "Estado");
+        disableTableColumnReordering();
 
-    // SETTINGS PRIMERO (controla visibilidad por rol)
-    Controllers.SettingsControllers setting =
-            new Controllers.SettingsControllers(this, loggedEmployee);
+        // MODELOS
+        Models.Employees employee          = new Models.Employees();
+        Models.EmployeesDao employeesDao   = new Models.EmployeesDao();
+        Models.Suppliers supplier          = new Models.Suppliers();
+        Models.SuppliersDao suppliersDao   = new Models.SuppliersDao();
+        Models.Categories category         = new Models.Categories();
+        Models.CategoriesDao categoryDao   = new Models.CategoriesDao();
+        Models.Products product            = new Models.Products();
+        Models.ProductsDao productsDao     = new Models.ProductsDao();
+        Models.Sales sale                  = new Models.Sales();
+        Models.SalesDao salesDao           = new Models.SalesDao();
+        Models.Purchases purchase          = new Models.Purchases();
+        Models.PurchasesDao purchaseDao    = new Models.PurchasesDao();
+        Models.Customers customer          = new Models.Customers();
+        Models.CustomersDao customersDao   = new Models.CustomersDao();
 
-    // CONTROLLERS
-    Controllers.EmployeesController employeeController =
-            new Controllers.EmployeesController(employee, employeesDao, this);
+        // MODELOS KARDEX
+        Models.Kardex kardex               = new Models.Kardex();
+        Models.KardexDao kardexDao         = new Models.KardexDao();
 
-    Controllers.SuppliersController supplierController =
-            new Controllers.SuppliersController(supplier, suppliersDao, this);
+        // SETTINGS PRIMERO (controla visibilidad por rol)
+        Controllers.SettingsControllers setting =
+                new Controllers.SettingsControllers(this, loggedEmployee);
 
-    Controllers.CategoriesController categoryController =
-            new Controllers.CategoriesController(category, categoryDao, this);
+        // CONTROLLERS
+        Controllers.EmployeesController employeeController =
+                new Controllers.EmployeesController(employee, employeesDao, this);
 
-    Controllers.ProductsController productController =
-            new Controllers.ProductsController(product, productsDao, this, setting);
+        Controllers.SuppliersController supplierController =
+                new Controllers.SuppliersController(supplier, suppliersDao, this);
 
-    Controllers.CustomersController customerController =
-            new Controllers.CustomersController(customer, customersDao, this);
+        Controllers.CategoriesController categoryController =
+                new Controllers.CategoriesController(category, categoryDao, this);
 
-    Controllers.SalesController salesController =
-            new Controllers.SalesController(sale, salesDao, this);
+        Controllers.ProductsController productController =
+                new Controllers.ProductsController(product, productsDao, this, setting);
 
-    Controllers.PurchasesController purchasesController =
-            new Controllers.PurchasesController(purchase, purchaseDao, this);
+        Controllers.CustomersController customerController =
+                new Controllers.CustomersController(customer, customersDao, this);
 
-    // REPORTES
-    Controllers.ReportsController reportsController =
-            new Controllers.ReportsController(this);
+        Controllers.SalesController salesController =
+                new Controllers.SalesController(sale, salesDao, this, loggedEmployee, productController);
 
-    // Refrescar reportes al abrir la pestaña
-    jTabbedPane1.addChangeListener(e -> {
-        int selected = jTabbedPane1.getSelectedIndex();
-        if (selected == 6) {
-            reportsController.loadSales();
-            reportsController.loadPurchases();
+        // PurchasesController recibe productController para poder refrescar
+        // la tabla/stock de Productos justo después de comprar.
+        Controllers.PurchasesController purchasesController =
+                new Controllers.PurchasesController(purchase, purchaseDao, this, loggedEmployee, productController);
+
+        // REPORTES
+        // ✅ CORREGIDO: ReportsController ahora también recibe productController,
+        // loggedEmployee y employeeController para control de acceso y actualización de nómina.
+        Controllers.ReportsController reportsController =
+                new Controllers.ReportsController(this, productController, loggedEmployee, employeeController);
+        employeeController.setReportsController(reportsController);
+
+        // Refrescar reportes al abrir la pestaña
+        jTabbedPane1.addChangeListener(e -> {
+            int selected = jTabbedPane1.getSelectedIndex();
+            if (selected == 6) {
+                reportsController.loadSales();
+                reportsController.loadPurchases();
+                reportsController.loadEmployeeSalaries();
+            }
+        });
+
+        // =============================================
+        // TOGGLE MODO OSCURO — en panel Configuraciones
+        // =============================================
+        javax.swing.JLabel lblTheme = new javax.swing.JLabel("Tema de la aplicación:");
+        lblTheme.setFont(new java.awt.Font("Tahoma", 1, 14));
+
+        Views.ToggleSwitch toggleTheme = new Views.ToggleSwitch();
+
+        javax.swing.JLabel lblThemeDesc = new javax.swing.JLabel("Claro");
+        lblThemeDesc.setFont(new java.awt.Font("Tahoma", 0, 13));
+
+        toggleTheme.setOnToggle(() -> {
+            boolean dark = toggleTheme.isDarkMode();
+            Views.ThemeManager.apply(this, dark);
+            lblThemeDesc.setText(dark ? "Oscuro" : "Claro");
+        });
+
+        // Agregar al panel de configuraciones (jPanel14)
+        jPanel14.add(lblTheme,
+                new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 430, 220, 30));
+        jPanel14.add(toggleTheme,
+                new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 430, 70, 34));
+        jPanel14.add(lblThemeDesc,
+                new org.netbeans.lib.awtextra.AbsoluteConstraints(355, 435, 80, 25));
+
+        // Iniciar el Timer de Inactividad
+        startSessionTimer(loggedEmployee);
+
+        this.repaint();
+    }
+
+    // =========================================================
+    // Reemplaza el modelo de una tabla por uno limpio, sin el
+    // arreglo canEdit desactualizado que trae el modelo generado
+    // por NetBeans. Si la tabla ya tiene una columna con el nombre
+    // indicado, no hace nada (evita duplicarla).
+    // =========================================================
+    private void replaceModelWithSafeVersion(javax.swing.JTable table, String extraColumnName) {
+        javax.swing.table.DefaultTableModel oldModel =
+                (javax.swing.table.DefaultTableModel) table.getModel();
+
+        // Revisar si la columna ya existe (por nombre)
+        for (int i = 0; i < oldModel.getColumnCount(); i++) {
+            if (extraColumnName.equals(oldModel.getColumnName(i))) {
+                extraColumnName = null; // ya existe, no la dupliques
+                break;
+            }
         }
-    });
 
-    // =============================================
-    // TOGGLE MODO OSCURO — en panel Configuraciones
-    // =============================================
-    javax.swing.JLabel lblTheme = new javax.swing.JLabel("Tema de la aplicación:");
-    lblTheme.setFont(new java.awt.Font("Tahoma", 1, 14));
+        java.util.Vector<String> columnNames = new java.util.Vector<>();
+        for (int i = 0; i < oldModel.getColumnCount(); i++) {
+            columnNames.add(oldModel.getColumnName(i));
+        }
+        if (extraColumnName != null) {
+            columnNames.add(extraColumnName);
+        }
 
-    Views.ToggleSwitch toggleTheme = new Views.ToggleSwitch();
+        javax.swing.table.DefaultTableModel newModel =
+                new javax.swing.table.DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false; // tabla de solo lectura, sin importar la columna
+            }
+        };
 
-    javax.swing.JLabel lblThemeDesc = new javax.swing.JLabel("Claro");
-    lblThemeDesc.setFont(new java.awt.Font("Tahoma", 0, 13));
+        table.setModel(newModel);
+        if (table.getTableHeader() != null) {
+            table.getTableHeader().setReorderingAllowed(false);
+        }
+    }
 
-    toggleTheme.setOnToggle(() -> {
-        boolean dark = toggleTheme.isDarkMode();
-        Views.ThemeManager.apply(this, dark);
-        lblThemeDesc.setText(dark ? "Oscuro" : "Claro");
-    });
+    /**
+     * Desactiva el arrastre y reordenamiento de columnas en todas las tablas del sistema,
+     * garantizando que el orden de las columnas se mantenga siempre fijo.
+     */
+    public void disableTableColumnReordering() {
+        javax.swing.JTable[] allTables = {
+            products_table, purchases_table, sales_table, custormers_table,
+            employees_table, suppliers_table, categories_table,
+            table_all_purchases, table_all_sales, table_employee_salaries
+        };
+        for (javax.swing.JTable table : allTables) {
+            if (table != null && table.getTableHeader() != null) {
+                table.getTableHeader().setReorderingAllowed(false);
+            }
+        }
+    }
 
-    // Agregar al panel de configuraciones (jPanel14)
-    jPanel14.add(lblTheme,
-            new org.netbeans.lib.awtextra.AbsoluteConstraints(40, 430, 220, 30));
-    jPanel14.add(toggleTheme,
-            new org.netbeans.lib.awtextra.AbsoluteConstraints(270, 430, 70, 34));
-    jPanel14.add(lblThemeDesc,
-            new org.netbeans.lib.awtextra.AbsoluteConstraints(355, 435, 80, 25));
+    private javax.swing.Timer sessionTimer;
 
-    this.repaint();
-}
+    private void startSessionTimer(Models.Employees loggedEmployee) {
+        int FIFTEEN_MINUTES = 15 * 60 * 1000; // 15 minutos en ms
+
+        sessionTimer = new javax.swing.Timer(FIFTEEN_MINUTES, e -> {
+            int option = javax.swing.JOptionPane.showConfirmDialog(
+                    this,
+                    "Tu sesión ha expirado por inactividad.\n¿Deseas continuar?",
+                    "Sesión expirada",
+                    javax.swing.JOptionPane.YES_NO_OPTION,
+                    javax.swing.JOptionPane.WARNING_MESSAGE
+            );
+
+            if (option == javax.swing.JOptionPane.YES_OPTION) {
+                // ✅ Reinicia el timer
+                sessionTimer.restart();
+            } else {
+                // ✅ Cerrar sesión
+                Models.EmployeesDao dao = new Models.EmployeesDao();
+                dao.logActivity(loggedEmployee.getId(), "Cierre de sesión por inactividad");
+                sessionTimer.stop();
+                dispose();
+                Views.LoginView loginView = new Views.LoginView();
+                loginView.setVisible(true);
+            }
+        });
+
+        sessionTimer.setRepeats(false);
+        sessionTimer.start();
+
+        // ✅ Reiniciar timer con cualquier click o tecla
+        java.awt.event.AWTEventListener activityListener =
+                event -> {
+                    if (sessionTimer != null) sessionTimer.restart();
+                };
+
+        java.awt.Toolkit.getDefaultToolkit().addAWTEventListener(
+                activityListener,
+                java.awt.AWTEvent.MOUSE_EVENT_MASK
+                | java.awt.AWTEvent.KEY_EVENT_MASK
+        );
+    }
     @SuppressWarnings("unchecked")
     // <editor-fold defaultstate="collapsed" desc="Generated Code">//GEN-BEGIN:initComponents
     private void initComponents() {
@@ -238,6 +366,11 @@ public SystemView(Models.Employees loggedEmployee) {
         txt_employee_telephone = new javax.swing.JTextField();
         txt_employee_email = new javax.swing.JTextField();
         txt_employee_password = new javax.swing.JPasswordField();
+        txt_employee_salary = new javax.swing.JTextField();
+        table_employee_salaries = new javax.swing.JTable();
+        btn_edit_salary = new javax.swing.JButton();
+        lbl_total_salaries = new javax.swing.JLabel();
+        lbl_count_salaries = new javax.swing.JLabel();
         btn_register_employee = new javax.swing.JButton();
         btn_update_employee = new javax.swing.JButton();
         btn_delete_employee = new javax.swing.JButton();
@@ -472,10 +605,7 @@ public SystemView(Models.Employees loggedEmployee) {
         );
         jPanelSupplimersLayout.setVerticalGroup(
             jPanelSupplimersLayout.createParallelGroup(javax.swing.GroupLayout.Alignment.LEADING)
-            .addGroup(jPanelSupplimersLayout.createSequentialGroup()
-                .addContainerGap()
-                .addComponent(jLabelSupplimers, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
-                .addGap(17, 17, 17))
+            .addComponent(jLabelSupplimers, javax.swing.GroupLayout.DEFAULT_SIZE, 40, Short.MAX_VALUE)
         );
 
         Menu.add(jPanelSupplimers, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 290, 200, 40));
@@ -601,33 +731,33 @@ public SystemView(Models.Employees loggedEmployee) {
                 btn_photoActionPerformed(evt);
             }
         });
-        Cabecera.add(btn_photo, new org.netbeans.lib.awtextra.AbsoluteConstraints(620, 20, 70, 80));
+        Cabecera.add(btn_photo, new org.netbeans.lib.awtextra.AbsoluteConstraints(600, 28, 64, 64));
 
-        btn_LoginOut.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
+        btn_LoginOut.setFont(new java.awt.Font("Tahoma", 1, 13)); // NOI18N
         btn_LoginOut.setText("Salir");
         btn_LoginOut.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 btn_LoginOutActionPerformed(evt);
             }
         });
-        Cabecera.add(btn_LoginOut, new org.netbeans.lib.awtextra.AbsoluteConstraints(880, 40, 80, 30));
+        Cabecera.add(btn_LoginOut, new org.netbeans.lib.awtextra.AbsoluteConstraints(900, 42, 85, 36));
 
-        jLabel64.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
-        jLabel64.setForeground(new java.awt.Color(255, 255, 255));
-        Cabecera.add(jLabel64, new org.netbeans.lib.awtextra.AbsoluteConstraints(700, 20, 180, 40));
+        jLabel64.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
+        jLabel64.setForeground(new java.awt.Color(225, 230, 255));
+        Cabecera.add(jLabel64, new org.netbeans.lib.awtextra.AbsoluteConstraints(678, 60, 210, 22));
 
         jLabel65.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
         jLabel65.setForeground(new java.awt.Color(255, 255, 255));
         jLabel65.setText("TIENDA GAMER");
         Cabecera.add(jLabel65, new org.netbeans.lib.awtextra.AbsoluteConstraints(90, 40, 280, 40));
 
-        jLabel63.setFont(new java.awt.Font("Tahoma", 1, 18)); // NOI18N
+        jLabel63.setFont(new java.awt.Font("Tahoma", 1, 16)); // NOI18N
         jLabel63.setForeground(new java.awt.Color(255, 255, 255));
-        Cabecera.add(jLabel63, new org.netbeans.lib.awtextra.AbsoluteConstraints(700, 70, 180, 40));
+        Cabecera.add(jLabel63, new org.netbeans.lib.awtextra.AbsoluteConstraints(678, 32, 210, 26));
 
         jLabel67.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
         jLabel67.setForeground(new java.awt.Color(255, 255, 255));
-        Cabecera.add(jLabel67, new org.netbeans.lib.awtextra.AbsoluteConstraints(700, 70, 180, 40));
+        Cabecera.add(jLabel67, new org.netbeans.lib.awtextra.AbsoluteConstraints(678, 60, 0, 0));
 
         getContentPane().add(Cabecera, new org.netbeans.lib.awtextra.AbsoluteConstraints(200, 0, 1010, 120));
 
@@ -1206,7 +1336,9 @@ public SystemView(Models.Employees loggedEmployee) {
         jLabel30.setText("Correo:");
 
         jLabel31.setFont(new java.awt.Font("Tahoma", 1, 14)); // NOI18N
-        jLabel31.setText("Password:");
+        jLabel31.setText("Sueldo ($):");
+
+        txt_employee_salary.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
 
         txt_employee_id.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
 
@@ -1306,7 +1438,7 @@ public SystemView(Models.Employees loggedEmployee) {
                                 .addGap(4, 4, 4)
                                 .addComponent(btn_delete_employee, javax.swing.GroupLayout.DEFAULT_SIZE, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE))))
                     .addGroup(jPanel7Layout.createSequentialGroup()
-                        .addComponent(txt_employee_password, javax.swing.GroupLayout.PREFERRED_SIZE, 165, javax.swing.GroupLayout.PREFERRED_SIZE)
+                        .addComponent(txt_employee_salary, javax.swing.GroupLayout.PREFERRED_SIZE, 165, javax.swing.GroupLayout.PREFERRED_SIZE)
                         .addPreferredGap(javax.swing.LayoutStyle.ComponentPlacement.RELATED, javax.swing.GroupLayout.DEFAULT_SIZE, Short.MAX_VALUE)
                         .addComponent(btn_cancel_employee, javax.swing.GroupLayout.PREFERRED_SIZE, 89, javax.swing.GroupLayout.PREFERRED_SIZE)))
                 .addGap(66, 66, 66))
@@ -1340,7 +1472,7 @@ public SystemView(Models.Employees loggedEmployee) {
                     .addComponent(jLabel27)
                     .addComponent(jLabel31)
                     .addComponent(cmb_rol, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
-                    .addComponent(txt_employee_password, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
+                    .addComponent(txt_employee_salary, javax.swing.GroupLayout.PREFERRED_SIZE, 30, javax.swing.GroupLayout.PREFERRED_SIZE)
                     .addComponent(btn_cancel_employee))
                 .addContainerGap(27, Short.MAX_VALUE))
         );
@@ -1357,11 +1489,11 @@ public SystemView(Models.Employees loggedEmployee) {
 
             },
             new String [] {
-                "Identificacion", "Nombre", "Usuario", "Direccion", "Telefono", "Correo", "Rol"
+                "Identificacion", "Nombre", "Usuario", "Direccion", "Telefono", "Correo", "Rol", "Sueldo"
             }
         ) {
             boolean[] canEdit = new boolean [] {
-                false, false, false, false, false, true, true
+                false, false, false, false, false, false, false, false
             };
 
             public boolean isCellEditable(int rowIndex, int columnIndex) {
@@ -1683,55 +1815,108 @@ public SystemView(Models.Employees loggedEmployee) {
         jTabbedPane1.addTab("Categorias", jPanel11);
 
         jPanel13.setBackground(new java.awt.Color(255, 255, 255));
-        jPanel13.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+        jPanel13.setLayout(new java.awt.BorderLayout());
 
-        jLabel44.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
-        jLabel44.setText("Compras Realizadas");
-        jPanel13.add(jLabel44, new org.netbeans.lib.awtextra.AbsoluteConstraints(390, 250, -1, -1));
+        javax.swing.JTabbedPane subTabReports = new javax.swing.JTabbedPane();
+        subTabReports.setFont(new java.awt.Font("Tahoma", 1, 13));
 
-        table_all_purchases.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-
-            },
-            new String [] {
-                "Factura", "Compra", "Total de Compra", "Fecha de Compra"
-            }
-        ) {
-            boolean[] canEdit = new boolean [] {
-                false, false, false, false
-            };
-
-            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit [columnIndex];
-            }
-        });
-        jScrollPane8.setViewportView(table_all_purchases);
-
-        jPanel13.add(jScrollPane8, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 300, 920, 170));
-
-        jLabel62.setFont(new java.awt.Font("Tahoma", 1, 24)); // NOI18N
-        jLabel62.setText("Ventas Realizadas");
-        jPanel13.add(jLabel62, new org.netbeans.lib.awtextra.AbsoluteConstraints(390, 20, -1, -1));
-
+        // Subpanel 1: Ventas Realizadas
+        javax.swing.JPanel panelVentas = new javax.swing.JPanel(new java.awt.BorderLayout(0, 10));
+        panelVentas.setBackground(java.awt.Color.WHITE);
+        panelVentas.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        javax.swing.JLabel lblTitleVentas = new javax.swing.JLabel("Ventas Realizadas  (Doble clic para procesar devolución)");
+        lblTitleVentas.setFont(new java.awt.Font("Tahoma", 1, 16));
+        panelVentas.add(lblTitleVentas, java.awt.BorderLayout.NORTH);
         table_all_sales.setModel(new javax.swing.table.DefaultTableModel(
-            new Object [][] {
-
-            },
-            new String [] {
-                "Factura Venta", "Cliente", "Empleado", "Total", "Fecha de Venta"
-            }
+            new Object [][] {},
+            new String [] { "Factura Venta", "Cliente", "Empleado", "Total", "Fecha de Venta", "Estado" }
         ) {
-            boolean[] canEdit = new boolean [] {
-                false, false, false, false, false
-            };
-
-            public boolean isCellEditable(int rowIndex, int columnIndex) {
-                return canEdit [columnIndex];
-            }
+            boolean[] canEdit = new boolean [] { false, false, false, false, false, false };
+            public boolean isCellEditable(int rowIndex, int columnIndex) { return canEdit [columnIndex]; }
         });
         jScrollPane9.setViewportView(table_all_sales);
+        panelVentas.add(jScrollPane9, java.awt.BorderLayout.CENTER);
+        subTabReports.addTab("Ventas Realizadas", panelVentas);
 
-        jPanel13.add(jScrollPane9, new org.netbeans.lib.awtextra.AbsoluteConstraints(30, 70, 920, 160));
+        // Subpanel 2: Compras Realizadas
+        javax.swing.JPanel panelCompras = new javax.swing.JPanel(new java.awt.BorderLayout(0, 10));
+        panelCompras.setBackground(java.awt.Color.WHITE);
+        panelCompras.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 20, 15, 20));
+        javax.swing.JLabel lblTitleCompras = new javax.swing.JLabel("Compras Realizadas  (Doble clic para procesar devolución)");
+        lblTitleCompras.setFont(new java.awt.Font("Tahoma", 1, 16));
+        panelCompras.add(lblTitleCompras, java.awt.BorderLayout.NORTH);
+        table_all_purchases.setModel(new javax.swing.table.DefaultTableModel(
+            new Object [][] {},
+            new String [] { "Factura", "Proveedor", "Total de Compra", "Fecha de Compra", "Estado" }
+        ) {
+            boolean[] canEdit = new boolean [] { false, false, false, false, false };
+            public boolean isCellEditable(int rowIndex, int columnIndex) { return canEdit [columnIndex]; }
+        });
+        jScrollPane8.setViewportView(table_all_purchases);
+        panelCompras.add(jScrollPane8, java.awt.BorderLayout.CENTER);
+        subTabReports.addTab("Compras Realizadas", panelCompras);
+
+        // Subpanel 3: Sueldos de Empleados
+        javax.swing.JPanel panelSueldos = new javax.swing.JPanel(new java.awt.BorderLayout(0, 15));
+        panelSueldos.setBackground(java.awt.Color.WHITE);
+        panelSueldos.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 20, 15, 20));
+
+        // Tarjetas de resumen superior
+        javax.swing.JPanel cardSummary = new javax.swing.JPanel(new java.awt.BorderLayout(20, 0));
+        cardSummary.setBackground(new java.awt.Color(245, 247, 250));
+        cardSummary.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+                javax.swing.BorderFactory.createLineBorder(new java.awt.Color(220, 224, 230), 1, true),
+                javax.swing.BorderFactory.createEmptyBorder(12, 20, 12, 20)
+        ));
+
+        javax.swing.JPanel statsPanel = new javax.swing.JPanel(new java.awt.GridLayout(1, 2, 20, 0));
+        statsPanel.setOpaque(false);
+
+        javax.swing.JPanel cardLeft = new javax.swing.JPanel(new java.awt.BorderLayout(0, 4));
+        cardLeft.setOpaque(false);
+        javax.swing.JLabel lblCard1Title = new javax.swing.JLabel("TOTAL NÓMINA A PAGAR (SUELDOS):");
+        lblCard1Title.setFont(new java.awt.Font("Tahoma", 1, 12));
+        lblCard1Title.setForeground(new java.awt.Color(100, 110, 120));
+        lbl_total_salaries = new javax.swing.JLabel("$ 0.00");
+        lbl_total_salaries.setFont(new java.awt.Font("Tahoma", 1, 20));
+        lbl_total_salaries.setForeground(new java.awt.Color(40, 167, 69));
+        cardLeft.add(lblCard1Title, java.awt.BorderLayout.NORTH);
+        cardLeft.add(lbl_total_salaries, java.awt.BorderLayout.CENTER);
+
+        javax.swing.JPanel cardRight = new javax.swing.JPanel(new java.awt.BorderLayout(0, 4));
+        cardRight.setOpaque(false);
+        javax.swing.JLabel lblCard2Title = new javax.swing.JLabel("TOTAL EMPLEADOS REGISTRADOS:");
+        lblCard2Title.setFont(new java.awt.Font("Tahoma", 1, 12));
+        lblCard2Title.setForeground(new java.awt.Color(100, 110, 120));
+        lbl_count_salaries = new javax.swing.JLabel("0 Empleados");
+        lbl_count_salaries.setFont(new java.awt.Font("Tahoma", 1, 20));
+        lbl_count_salaries.setForeground(new java.awt.Color(70, 80, 95));
+        cardRight.add(lblCard2Title, java.awt.BorderLayout.NORTH);
+        cardRight.add(lbl_count_salaries, java.awt.BorderLayout.CENTER);
+
+        statsPanel.add(cardLeft);
+        statsPanel.add(cardRight);
+        cardSummary.add(statsPanel, java.awt.BorderLayout.CENTER);
+
+        btn_edit_salary = new javax.swing.JButton("Modificar Sueldo");
+        btn_edit_salary.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        btn_edit_salary.setBackground(new java.awt.Color(79, 70, 229));
+        btn_edit_salary.setForeground(java.awt.Color.WHITE);
+        btn_edit_salary.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btn_edit_salary.setFocusPainted(false);
+        cardSummary.add(btn_edit_salary, java.awt.BorderLayout.EAST);
+
+        // Tabla de sueldos
+        table_employee_salaries = new javax.swing.JTable();
+        table_employee_salaries.setFont(new java.awt.Font("Tahoma", 0, 13));
+        table_employee_salaries.setRowHeight(26);
+        javax.swing.JScrollPane scrollSalaries = new javax.swing.JScrollPane(table_employee_salaries);
+
+        panelSueldos.add(cardSummary, java.awt.BorderLayout.NORTH);
+        panelSueldos.add(scrollSalaries, java.awt.BorderLayout.CENTER);
+        subTabReports.addTab("Sueldos y Nómina de Empleados", panelSueldos);
+
+        jPanel13.add(subTabReports, java.awt.BorderLayout.CENTER);
 
         jTabbedPane1.addTab("Reportes", jPanel13);
 
@@ -2097,8 +2282,150 @@ public SystemView(Models.Employees loggedEmployee) {
     }// </editor-fold>//GEN-END:initComponents
 
     private void btn_photoActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_photoActionPerformed
-
+        if (loggedEmployee != null) {
+            javax.swing.ImageIcon updated = AvatarHelper.chooseAndSaveEmployeePhoto(
+                    this, loggedEmployee.getId(), loggedEmployee.getFull_name(), 64);
+            if (updated != null) {
+                btn_photo.setIcon(updated);
+            }
+        }
     }//GEN-LAST:event_btn_photoActionPerformed
+
+    /**
+     * Configura la presentación visual moderna de la cabecera:
+     * avatar circular del empleado, tipografía del nombre y rol, y botón de salida estilizado.
+     */
+    private void setupHeaderProfile() {
+        if (loggedEmployee == null) {
+            return;
+        }
+
+        // 1. Configurar avatar moderno y foto
+        AvatarHelper.applyPhotoToButton(btn_photo, loggedEmployee.getId(), loggedEmployee.getFull_name(), 64);
+
+        // 2. Nombre del empleado (destacado arriba)
+        String nombre = loggedEmployee.getFull_name();
+        jLabel63.setText(nombre != null && !nombre.trim().isEmpty() ? nombre : "Empleado");
+        jLabel63.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 16));
+        jLabel63.setForeground(java.awt.Color.WHITE);
+
+        // 3. Rol del empleado (badge / subtítulo estilizado abajo)
+        String rol = loggedEmployee.getRol();
+        String rolFormateado = (rol != null && !rol.trim().isEmpty()) ? rol.toUpperCase() : "EMPLEADO";
+        jLabel64.setText("●  " + rolFormateado);
+        jLabel64.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        jLabel64.setForeground(new java.awt.Color(225, 230, 255));
+
+        // 4. Ocultar label redundante
+        jLabel67.setVisible(false);
+
+        // 5. Botón Salir moderno
+        btn_LoginOut.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        btn_LoginOut.setFocusPainted(false);
+        btn_LoginOut.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btn_LoginOut.setBackground(java.awt.Color.WHITE);
+        btn_LoginOut.setForeground(new java.awt.Color(220, 53, 69));
+        btn_LoginOut.setBorder(new javax.swing.border.LineBorder(new java.awt.Color(255, 255, 255), 1, true));
+
+        btn_LoginOut.addMouseListener(new java.awt.event.MouseAdapter() {
+            @Override
+            public void mouseEntered(java.awt.event.MouseEvent evt) {
+                btn_LoginOut.setBackground(new java.awt.Color(255, 235, 238));
+                btn_LoginOut.setForeground(new java.awt.Color(190, 20, 40));
+            }
+
+            @Override
+            public void mouseExited(java.awt.event.MouseEvent evt) {
+                btn_LoginOut.setBackground(java.awt.Color.WHITE);
+                btn_LoginOut.setForeground(new java.awt.Color(220, 53, 69));
+            }
+        });
+
+        // Asegurar restricciones en AbsoluteLayout
+        if (Cabecera.getLayout() instanceof org.netbeans.lib.awtextra.AbsoluteLayout) {
+            org.netbeans.lib.awtextra.AbsoluteLayout absLayout = (org.netbeans.lib.awtextra.AbsoluteLayout) Cabecera.getLayout();
+            absLayout.addLayoutComponent(btn_photo, new org.netbeans.lib.awtextra.AbsoluteConstraints(600, 28, 64, 64));
+            absLayout.addLayoutComponent(jLabel63, new org.netbeans.lib.awtextra.AbsoluteConstraints(678, 32, 210, 26));
+            absLayout.addLayoutComponent(jLabel64, new org.netbeans.lib.awtextra.AbsoluteConstraints(678, 60, 210, 22));
+            absLayout.addLayoutComponent(btn_LoginOut, new org.netbeans.lib.awtextra.AbsoluteConstraints(900, 42, 85, 36));
+        }
+
+        Cabecera.revalidate();
+        Cabecera.repaint();
+    }
+
+    /**
+     * Moderniza el sidebar del menú con un diseño gamer oscuro, elegante y ordenado.
+     * Uniforma el tamaño, alineación, iconos y espaciado de todos los botones de navegación.
+     */
+    private void setupModernMenu() {
+        java.awt.Color menuBg = new java.awt.Color(24, 24, 38);   // #181826 Deep gamer slate
+        java.awt.Color logoBg = new java.awt.Color(24, 24, 38);
+
+        Menu.setBackground(menuBg);
+        Logo.setBackground(logoBg);
+
+        // Ajustar proporciones de Logo, Menu y Cabecera sin huecos
+        if (getContentPane().getLayout() instanceof org.netbeans.lib.awtextra.AbsoluteLayout) {
+            org.netbeans.lib.awtextra.AbsoluteLayout rootLayout = 
+                    (org.netbeans.lib.awtextra.AbsoluteLayout) getContentPane().getLayout();
+            rootLayout.addLayoutComponent(Logo, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 0, 200, 110));
+            rootLayout.addLayoutComponent(Menu, new org.netbeans.lib.awtextra.AbsoluteConstraints(0, 110, 200, 570));
+            rootLayout.addLayoutComponent(Cabecera, new org.netbeans.lib.awtextra.AbsoluteConstraints(200, 0, 1010, 110));
+        }
+
+        // Cabecera con tono índigo/morado moderno más vibrante
+        Cabecera.setBackground(new java.awt.Color(79, 70, 229)); // #4F46E5 Modern Indigo
+
+        // Arreglo ordenado de paneles y etiquetas del menú
+        javax.swing.JPanel[] menuPanels = {
+            jPanelProducts, jPanelPurchases, jPanelSales, jPanelCustomers,
+            jPanelEmployees, jPanelSupplimers, jPanelCategories, jPanelReports, jPanelSettings
+        };
+        javax.swing.JLabel[] menuLabels = {
+            jLabelProducts, jLabelPurchases, jLabelSales, jLabelCustomers,
+            jLabelEmployees, jLabelSupplimers, jLabelCategories, jLabelReports, jLabelSettings
+        };
+
+        // Uniformar dimensiones y posicionamiento (180x42 px, centrados a x=10)
+        int startY = 14;
+        int btnHeight = 42;
+        int gap = 10;
+        int btnWidth = 180;
+        int btnX = 10;
+
+        for (int i = 0; i < menuPanels.length; i++) {
+            javax.swing.JPanel p = menuPanels[i];
+            javax.swing.JLabel l = menuLabels[i];
+
+            int currentY = startY + i * (btnHeight + gap);
+
+            if (Menu.getLayout() instanceof org.netbeans.lib.awtextra.AbsoluteLayout) {
+                org.netbeans.lib.awtextra.AbsoluteLayout layout = 
+                        (org.netbeans.lib.awtextra.AbsoluteLayout) Menu.getLayout();
+                layout.addLayoutComponent(p, new org.netbeans.lib.awtextra.AbsoluteConstraints(btnX, currentY, btnWidth, btnHeight));
+            }
+
+            p.setOpaque(false);
+            p.setLayout(new java.awt.BorderLayout(12, 0));
+            p.removeAll();
+            p.setBorder(javax.swing.BorderFactory.createEmptyBorder(0, 16, 0, 10));
+
+            l.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+            l.setForeground(new java.awt.Color(226, 232, 240));
+            l.setHorizontalAlignment(javax.swing.SwingConstants.LEFT);
+            l.setIconTextGap(12);
+
+            p.add(l, java.awt.BorderLayout.CENTER);
+            p.revalidate();
+            p.repaint();
+        }
+
+        Menu.revalidate();
+        Menu.repaint();
+        getContentPane().revalidate();
+        getContentPane().repaint();
+    }
 
     private void btn_LoginOutActionPerformed(java.awt.event.ActionEvent evt) {//GEN-FIRST:event_btn_LoginOutActionPerformed
          if(evt.getSource()== btn_LoginOut){
@@ -2287,11 +2614,13 @@ public SystemView(Models.Employees loggedEmployee) {
 
         /* Create and display the form */
         java.awt.EventQueue.invokeLater(() -> {
-        Models.Employees guest = new Models.Employees();
-        guest.setRol("administrador");
-        new SystemView(guest).setVisible(true);
-    });
-}   
+            Models.Employees guest = new Models.Employees();
+            guest.setId(123);
+            guest.setFull_name("Johhan Gonzalez");
+            guest.setRol("administrador");
+            new SystemView(guest).setVisible(true);
+        });
+    }   
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JPanel Cabecera;
     private javax.swing.JPanel Logo;
@@ -2468,6 +2797,11 @@ public SystemView(Models.Employees loggedEmployee) {
     public javax.swing.JPasswordField txt_employee_password;
     public javax.swing.JTextField txt_employee_telephone;
     public javax.swing.JTextField txt_employee_username;
+    public javax.swing.JTextField txt_employee_salary;
+    public javax.swing.JTable table_employee_salaries;
+    public javax.swing.JButton btn_edit_salary;
+    public javax.swing.JLabel lbl_total_salaries;
+    public javax.swing.JLabel lbl_count_salaries;
     public javax.swing.JTextField txt_id_profile;
     public javax.swing.JTextField txt_name_profile;
     public javax.swing.JPasswordField txt_password_modify;

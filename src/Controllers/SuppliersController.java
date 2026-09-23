@@ -134,15 +134,23 @@ public class SuppliersController implements ActionListener, MouseListener, KeyLi
         for (Suppliers s : list) {
             Object[] row = {
                 s.getId(),
-                s.getName(),
-                s.getDescription(),
-                s.getAddress(),      // modelo: address
-                s.getTelephone(),
-                s.getEmail(),
-                s.getCity()
+                s.getName() != null ? s.getName() : "",
+                s.getDescription() != null ? s.getDescription() : "",
+                s.getAddress() != null ? s.getAddress() : "",      // modelo: address
+                s.getTelephone() != null ? s.getTelephone() : "",
+                s.getEmail() != null ? s.getEmail() : "",
+                s.getCity() != null ? s.getCity() : ""
             };
             model.addRow(row);
         }
+    }
+
+    private String getSafeValue(int row, int col) {
+        if (row < 0 || row >= model.getRowCount() || col < 0 || col >= model.getColumnCount()) {
+            return "";
+        }
+        Object val = model.getValueAt(row, col);
+        return val != null ? val.toString().trim() : "";
     }
 
     // =====================================
@@ -154,13 +162,16 @@ public class SuppliersController implements ActionListener, MouseListener, KeyLi
         int row = views.suppliers_table.getSelectedRow();
 
         if (row >= 0) {
-            views.txt_supplier_id.setText(model.getValueAt(row, 0).toString());
-            views.txt_supplier_name.setText(model.getValueAt(row, 1).toString());
-            views.txt_supplier_description.setText(model.getValueAt(row, 2).toString());
-            views.txt_supplier_addres.setText(model.getValueAt(row, 3).toString());  // vista: addres
-            views.txt_supplier_telephone.setText(model.getValueAt(row, 4).toString());
-            views.txt_supplier_email.setText(model.getValueAt(row, 5).toString());
-            views.cmb_supplier_city.setSelectedItem(model.getValueAt(row, 6).toString());
+            views.txt_supplier_id.setText(getSafeValue(row, 0));
+            views.txt_supplier_name.setText(getSafeValue(row, 1));
+            views.txt_supplier_description.setText(getSafeValue(row, 2));
+            views.txt_supplier_addres.setText(getSafeValue(row, 3));  // vista: addres
+            views.txt_supplier_telephone.setText(getSafeValue(row, 4));
+            views.txt_supplier_email.setText(getSafeValue(row, 5));
+            String city = getSafeValue(row, 6);
+            if (!city.isEmpty()) {
+                views.cmb_supplier_city.setSelectedItem(city);
+            }
         }
     }
 

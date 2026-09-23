@@ -1,428 +1,330 @@
 package Controllers;
 
-import static Models.EmployeesDao.id_user;
-import Models.Products;
-import Models.ProductsDao;
+import Models.Employees;
 import Models.Purchases;
 import Models.PurchasesDao;
+import Models.Products;
+import Models.ProductsDao;
 import Models.Suppliers;
 import Models.SuppliersDao;
 import Views.SystemView;
 
-import java.awt.event.*;
-import java.util.ArrayList;
-import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
+import java.awt.event.MouseEvent;
+import java.awt.event.MouseListener;
+import java.util.ArrayList;
+import java.util.List;
 
-public class PurchasesController implements ActionListener,
-        MouseListener,
-        KeyListener {
+public class PurchasesController implements ActionListener, MouseListener, KeyListener {
 
     private Purchases purchase;
     private PurchasesDao purchaseDao;
     private SystemView views;
+    private Employees loggedEmployee;
 
-    private Products product;
     private ProductsDao productsDao;
+
     private SuppliersDao suppliersDao;
+    private List<Suppliers> supplierList;
 
-    private int getIdSupplier = 0;
+    // ✅ NUEVO: referencia al controller de Productos, para poder refrescar
+    // su tabla (y por lo tanto el stock visible) apenas se registre la compra.
+    private ProductsController productsController;
 
-    DefaultTableModel model;
+    private DefaultTableModel model;
 
-    public PurchasesController(
-            Purchases purchase,
-            PurchasesDao purchaseDao,
-            SystemView views) {
+    private final List<Integer> rowCodes = new ArrayList<>();
+    private final List<Integer> rowProductIds = new ArrayList<>();
 
-        this.purchase     = purchase;
-        this.purchaseDao  = purchaseDao;
-        this.views        = views;
-        this.product      = new Products();
-        this.productsDao  = new ProductsDao();
+    double totalPagar = 0.0;
+    int itemPerRow = 0;
+
+    public PurchasesController(Purchases purchase, PurchasesDao purchaseDao, SystemView views,
+                                Employees loggedEmployee, ProductsController productsController) {
+        this.purchase = purchase;
+        this.purchaseDao = purchaseDao;
+        this.views = views;
+        this.loggedEmployee = loggedEmployee;
+        this.productsController = productsController; // ✅ NUEVO
+        this.productsDao = new ProductsDao();
         this.suppliersDao = new SuppliersDao();
+        this.model = (DefaultTableModel) views.purchases_table.getModel();
 
-        model = (DefaultTableModel) views.purchases_table.getModel();
+        // Listener de teclado: búsqueda de producto al presionar Enter, igual que en ventas
+        this.views.txt_purchase_product_code.addKeyListener(this);
 
-        views.txt_purchase_product_code.addKeyListener(this);
-        views.txt_purchase_amount.addKeyListener(this);
-        views.txt_purchase_price.addKeyListener(this);
+        // Listeners de botones
+        this.views.btn_add_product_to_buy.addActionListener(this);
+        this.views.btn_confirm_purchase.addActionListener(this);
+        this.views.btn_remove_purchase.addActionListener(this);
+        this.views.btn_new_purchase.addActionListener(this);
+        this.views.purchases_table.addMouseListener(this);
 
-        views.btn_add_product_to_buy.addActionListener(this);
-        views.btn_confirm_purchase.addActionListener(this);
-        views.btn_remove_purchase.addActionListener(this);
-        views.btn_new_purchase.addActionListener(this);
-
-        views.purchases_table.addMouseListener(this);
-
+        // Cargar proveedores en el combo
         loadSuppliers();
     }
 
+    @Override
+    public void actionPerformed(ActionEvent e) {
+        if (e.getSource() == views.btn_add_product_to_buy) {
+            addProductToPurchaseTable();
+        } else if (e.getSource() == views.btn_confirm_purchase) {
+            insertPurchase();
+        } else if (e.getSource() == views.btn_remove_purchase) {
+            removeProductFromTable();
+        } else if (e.getSource() == views.btn_new_purchase) {
+            cleanPurchasesForm();
+        }
+    }
+
     // =========================================
-    // CARGAR PROVEEDORES
+    // CARGAR PROVEEDORES EN EL COMBO
     // =========================================
     public void loadSuppliers() {
+        supplierList = suppliersDao.listSuppliersQuery(""); // "" trae todos
+
         views.cmb_purchase_supplier.removeAllItems();
-        List<Suppliers> list = suppliersDao.listSuppliersQuery("");
-        for (Suppliers s : list) {
+
+        if (supplierList == null || supplierList.isEmpty()) {
+            return;
+        }
+
+        for (Suppliers s : supplierList) {
             views.cmb_purchase_supplier.addItem(s.getName());
         }
     }
 
     // =========================================
-    // BOTONES
-    // =========================================
-    @Override
-    public void actionPerformed(ActionEvent e) {
-        if (e.getSource() == views.btn_add_product_to_buy) addProductToTable();
-        if (e.getSource() == views.btn_remove_purchase)    removeProductFromTable();
-        if (e.getSource() == views.btn_confirm_purchase)   insertPurchase();
-        if (e.getSource() == views.btn_new_purchase)       newPurchase();
-    }
-
-    // =========================================
-    // BUSCAR PRODUCTO POR CÓDIGO — ENTER
+    // BUSCAR PRODUCTO POR CÓDIGO (ENTER) — igual que en ventas
     // =========================================
     @Override
     public void keyPressed(KeyEvent e) {
-        if (e.getSource() == views.txt_purchase_product_code
-                && e.getKeyCode() == KeyEvent.VK_ENTER) {
-
+        if (e.getSource() == views.txt_purchase_product_code && e.getKeyCode() == KeyEvent.VK_ENTER) {
             String codeText = views.txt_purchase_product_code.getText().trim();
             if (codeText.isEmpty()) return;
 
-            product = productsDao.searchCode(parseIntSafe(codeText));
+            int code;
+            try {
+                code = Integer.parseInt(codeText);
+            } catch (NumberFormatException ex) {
+                JOptionPane.showMessageDialog(views, "Ingrese un código de producto válido (número entero)");
+                return;
+            }
 
-            if (product != null) {
+            Products product = productsDao.searchCode(code);
+
+            if (product != null && product.getId() > 0) {
                 views.txt_purchase_product_name.setText(product.getName());
-                views.txt_purchase_id.setText(String.valueOf(product.getId()));
-                views.txt_purchase_price.setText(
-                        String.format("%.2f", product.getUnit_price()));
+                views.txt_purchase_price.setText(String.format("%.2f", product.getUnit_price()));
                 views.txt_purchase_amount.requestFocus();
             } else {
-                JOptionPane.showMessageDialog(null,
-                        "Producto no encontrado o inactivo");
-                cleanFieldsPurchases();
+                JOptionPane.showMessageDialog(views, "El producto no existe o está inactivo");
+                cleanPurchaseInputs();
+                views.txt_purchase_product_code.requestFocus();
             }
         }
     }
 
-    // =========================================
-    // CALCULAR SUBTOTAL AL ESCRIBIR
-    // =========================================
     @Override
     public void keyReleased(KeyEvent e) {
-        if (e.getSource() == views.txt_purchase_amount
-                || e.getSource() == views.txt_purchase_price) {
-
-            String amountText = views.txt_purchase_amount.getText().trim();
-            String priceText  = views.txt_purchase_price.getText().trim();
-
-            if (!amountText.isEmpty() && !priceText.isEmpty()) {
-                int amount      = parseIntSafe(amountText);
-                double price    = parseDoubleSafe(priceText);
-                double subtotal = amount * price;
-                views.txt_purchase_subtotal.setText(
-                        String.format("%.2f", subtotal));
-            }
-        }
+        // No se usa por ahora (sin vista previa de subtotal antes de agregar)
     }
 
-    // =========================================
-    // AGREGAR PRODUCTO A LA TABLA
-    // =========================================
-    private void addProductToTable() {
+    @Override
+    public void keyTyped(KeyEvent e) {
+    }
 
-        if (views.txt_purchase_id.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(null,
-                    "Busca un producto primero (ingresa el código y presiona Enter)");
-            return;
-        }
+    public void addProductToPurchaseTable() {
+        try {
+            int amount = Integer.parseInt(views.txt_purchase_amount.getText());
+            int code = Integer.parseInt(views.txt_purchase_product_code.getText());
 
-        int productId = parseIntSafe(views.txt_purchase_id.getText());
-        int amount    = parseIntSafe(views.txt_purchase_amount.getText());
-        double price  = parseDoubleSafe(views.txt_purchase_price.getText());
-
-        if (amount <= 0) {
-            JOptionPane.showMessageDialog(null,
-                    "La cantidad debe ser mayor a 0");
-            return;
-        }
-        if (price <= 0) {
-            JOptionPane.showMessageDialog(null,
-                    "El precio no puede ser 0");
-            return;
-        }
-
-        double subtotal = amount * price;
-
-        String supplierName =
-                (String) views.cmb_purchase_supplier.getSelectedItem();
-        if (supplierName == null || supplierName.isEmpty()) {
-            JOptionPane.showMessageDialog(null, "Selecciona un proveedor");
-            return;
-        }
-
-        // Buscar ID del proveedor por nombre
-        int supplierId = 0;
-        List<Suppliers> allSuppliers = suppliersDao.listSuppliersQuery("");
-        for (Suppliers s : allSuppliers) {
-            if (s.getName().equals(supplierName)) {
-                supplierId = s.getId();
-                break;
-            }
-        }
-
-        if (supplierId == 0) {
-            JOptionPane.showMessageDialog(null, "Proveedor no válido");
-            return;
-        }
-
-        // Bloquear cambio de proveedor dentro de la misma compra
-        if (getIdSupplier == 0) {
-            getIdSupplier = supplierId;
-            views.cmb_purchase_supplier.setEnabled(false);
-        } else if (getIdSupplier != supplierId) {
-            JOptionPane.showMessageDialog(null,
-                    "No puedes mezclar proveedores en la misma compra.");
-            return;
-        }
-
-        // Verificar si el producto ya fue agregado
-        for (int i = 0; i < model.getRowCount(); i++) {
-            if (Integer.parseInt(
-                    model.getValueAt(i, 0).toString()) == productId) {
-                JOptionPane.showMessageDialog(null,
-                        "Este producto ya fue agregado a la lista.");
+            if (amount <= 0) {
+                JOptionPane.showMessageDialog(views, "La cantidad debe ser mayor a 0");
                 return;
             }
+
+            Products product = productsDao.searchCode(code);
+
+            if (product == null || product.getId() == 0) {
+                JOptionPane.showMessageDialog(views, "El producto no existe o está inactivo");
+                return;
+            }
+
+            int productId = product.getId();
+            String productName = product.getName();
+            double price = product.getUnit_price();
+            double subtotal = amount * price;
+
+            for (int i = 0; i < rowCodes.size(); i++) {
+                if (rowCodes.get(i) == code) {
+                    int existingAmount = Integer.parseInt(model.getValueAt(i, 2).toString());
+                    int newAmount = existingAmount + amount;
+                    double newSubtotal = newAmount * price;
+
+                    model.setValueAt(newAmount, i, 2);
+                    model.setValueAt(String.format("%.2f", newSubtotal), i, 4);
+                    calculateTotalPurchase();
+                    cleanPurchaseInputs();
+                    views.txt_purchase_product_code.requestFocus();
+                    return;
+                }
+            }
+
+            itemPerRow++;
+
+            String supplierName = (views.cmb_purchase_supplier.getSelectedItem() != null)
+                    ? views.cmb_purchase_supplier.getSelectedItem().toString()
+                    : "";
+
+            Object[] item = new Object[]{
+                itemPerRow,
+                productName,
+                amount,
+                String.format("%.2f", price),
+                String.format("%.2f", subtotal),
+                supplierName
+            };
+
+            model.addRow(item);
+            rowCodes.add(code);
+            rowProductIds.add(productId);
+
+            calculateTotalPurchase();
+            cleanPurchaseInputs();
+            views.txt_purchase_product_code.requestFocus();
+
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(views, "Ingrese un código y cantidad válidos (números enteros)");
         }
-
-        model.addRow(new Object[]{
-            productId,
-            views.txt_purchase_product_name.getText(),
-            amount,
-            String.format("%.2f", price),
-            String.format("%.2f", subtotal),
-            supplierName
-        });
-
-        calculateTotal();
-        cleanFieldsPurchases();
-        views.txt_purchase_product_code.requestFocus();
     }
 
-    // =========================================
-    // ELIMINAR FILA DE LA TABLA
-    // =========================================
-    private void removeProductFromTable() {
-        int row = views.purchases_table.getSelectedRow();
-        if (row == -1) {
-            JOptionPane.showMessageDialog(null,
-                    "Selecciona una fila para eliminar");
-            return;
-        }
-        model.removeRow(row);
-        calculateTotal();
+    public void insertPurchase() {
 
-        if (model.getRowCount() == 0) {
-            getIdSupplier = 0;
-            views.cmb_purchase_supplier.setEnabled(true);
-            views.txt_purchase_total_to_pay.setText("");
-            loadSuppliers();
-        }
-    }
-
-    // =========================================
-    // CONFIRMAR COMPRA
-    // =========================================
-    private void insertPurchase() {
-
-        if (model.getRowCount() == 0) {
-            JOptionPane.showMessageDialog(null,
-                    "No hay productos en la lista");
+        if (supplierList == null || supplierList.isEmpty()) {
+            JOptionPane.showMessageDialog(views, "No hay proveedores registrados. Registra uno antes de comprar.");
             return;
         }
 
-        double total = parseDoubleSafe(
-                views.txt_purchase_total_to_pay.getText());
+        int selectedIndex = views.cmb_purchase_supplier.getSelectedIndex();
+        if (selectedIndex < 0 || selectedIndex >= supplierList.size()) {
+            JOptionPane.showMessageDialog(views, "Selecciona un proveedor válido");
+            return;
+        }
 
-        int confirm = JOptionPane.showConfirmDialog(
-                null,
-                "¿Confirmar compra por un total de $"
-                        + String.format("%.2f", total) + "?",
-                "Confirmar compra",
-                JOptionPane.YES_NO_OPTION,
-                JOptionPane.QUESTION_MESSAGE
-        );
+        if (model.getRowCount() == 0) {
+            JOptionPane.showMessageDialog(views, "No hay productos en la lista de compra");
+            return;
+        }
 
-        if (confirm != JOptionPane.YES_OPTION) return;
+        int supplierId = supplierList.get(selectedIndex).getId();
 
-        int purchaseId = purchaseDao.registerPurchaseQuery(
-                getIdSupplier, id_user, total);
+        double total = totalPagar;
+        String estado = "COMPLETADA";
+
+        purchase.setSupplier_id(supplierId);
+
+        if (loggedEmployee != null) {
+            purchase.setEmployee_id(loggedEmployee.getId());
+        } else {
+            purchase.setEmployee_id(1);
+        }
+
+        purchase.setTotal(total);
+        purchase.setEstado(estado);
+
+        int purchaseId = purchaseDao.registerPurchaseQuery(purchase);
 
         if (purchaseId > 0) {
-
-            boolean allOk = true;
-
             for (int i = 0; i < model.getRowCount(); i++) {
-                int pid          = parseIntSafe(
-                        model.getValueAt(i, 0).toString());
-                int amt          = parseIntSafe(
-                        model.getValueAt(i, 2).toString());
-                double unitPrice = parseDoubleSafe(
-                        model.getValueAt(i, 3).toString());
-                double sub       = parseDoubleSafe(
-                        model.getValueAt(i, 4).toString());
+                int productId = rowProductIds.get(i);
+                int amount = Integer.parseInt(model.getValueAt(i, 2).toString());
+                double price = Double.parseDouble(model.getValueAt(i, 3).toString().replace(",", "."));
+                double subtotal = Double.parseDouble(model.getValueAt(i, 4).toString().replace(",", "."));
 
-                boolean detailOk = purchaseDao.registerPurchaseDetailQuery(
-                        purchaseId, pid, amt, unitPrice, sub);
-                boolean stockOk  = productsDao.updatePurchaseStockQuery(
-                        amt, pid);
+                purchaseDao.registerPurchaseDetailsQuery(purchaseId, productId, amount, price, subtotal);
 
-                System.out.println("Producto ID " + pid
-                        + " → detalle: " + detailOk
-                        + " | stock: "   + stockOk);
-
-                if (!detailOk || !stockOk) allOk = false;
+                ProductsDao prodDao = new ProductsDao();
+                prodDao.updatePurchaseStockQuery(amount, productId);
             }
 
-            // Limpiar formulario
-            cleanTableTemp();
-            cleanFieldsPurchases();
-            views.txt_purchase_total_to_pay.setText("");
-            views.cmb_purchase_supplier.setEnabled(true);
-            getIdSupplier = 0;
-            loadSuppliers();
+            JOptionPane.showMessageDialog(views, "¡Compra registrada exitosamente!");
+            cleanPurchasesForm();
+            cleanTablePurchases();
 
-            if (allOk) {
-                JOptionPane.showMessageDialog(null,
-                        "¡Compra registrada correctamente!");
-            } else {
-                JOptionPane.showMessageDialog(null,
-                        "Compra registrada pero algunos detalles "
-                        + "fallaron. Revisa la consola.");
+            // ✅ NUEVO: refresca la tabla de Productos para que el stock
+            // actualizado se vea de inmediato, sin reiniciar el programa.
+            if (productsController != null) {
+                productsController.refreshTable();
             }
-
-            // ✅ Refrescar tabla de productos DESPUÉS del mensaje
-            refreshProductsTable();
-
         } else {
-            JOptionPane.showMessageDialog(null,
-                    "Error al registrar la compra");
+            JOptionPane.showMessageDialog(views, "Error al registrar la compra.");
         }
     }
 
-    // =========================================
-    // NUEVA COMPRA
-    // =========================================
-    private void newPurchase() {
-        cleanTableTemp();
-        cleanFieldsPurchases();
-        views.txt_purchase_total_to_pay.setText("");
-        views.cmb_purchase_supplier.setEnabled(true);
-        getIdSupplier = 0;
-        loadSuppliers();
+    public void calculateTotalPurchase() {
+        totalPagar = 0.0;
+        int numRow = model.getRowCount();
+        for (int i = 0; i < numRow; i++) {
+            totalPagar += Double.parseDouble(String.valueOf(model.getValueAt(i, 4)).replace(",", "."));
+        }
+        views.txt_purchase_total_to_pay.setText(String.format("%.2f", totalPagar));
     }
 
-    // =========================================
-    // CALCULAR TOTAL
-    // =========================================
-    private void calculateTotal() {
-        double total = 0;
-        for (int i = 0; i < model.getRowCount(); i++) {
-            total += parseDoubleSafe(model.getValueAt(i, 4).toString());
-        }
-        views.txt_purchase_total_to_pay.setText(
-                String.format("%.2f", total));
-    }
-
-    // =========================================
-    // ✅ REFRESCAR TABLA DE PRODUCTOS — CORREGIDO
-    // =========================================
-    private void refreshProductsTable() {
-
-        if (views.products_table == null) {
-            System.out.println("products_table es null");
-            return;
-        }
-
-        DefaultTableModel productModel =
-                (DefaultTableModel) views.products_table.getModel();
-
-        if (productModel == null) {
-            System.out.println("El modelo de products_table es null");
-            return;
-        }
-
-        productModel.setRowCount(0);
-
-        try {
-            List<Products> list = productsDao.listProductsQuery("");
-
-            if (list == null || list.isEmpty()) {
-                System.out.println("listProductsQuery retornó vacío");
-                return;
-            }
-
-            for (Products p : list) {
-                productModel.addRow(new Object[]{
-                    p.getId(),
-                    p.getCode(),
-                    p.getName(),
-                    p.getDescription(),
-                    p.getUnit_price(),
-                    p.getProduct_quantity(),
-                    p.getCategory_name(),
-                    p.getStatus() == 1 ? "Activo" : "Inactivo"
-                });
-            }
-
-            System.out.println("Tabla de productos refrescada: "
-                    + list.size() + " filas");
-
-        } catch (Exception e) {
-            System.out.println("Error en refreshProductsTable: "
-                    + e.getMessage());
-            e.printStackTrace();
-        }
-    }
-
-    // =========================================
-    // LIMPIAR CAMPOS
-    // =========================================
-    private void cleanFieldsPurchases() {
+    public void cleanPurchaseInputs() {
         views.txt_purchase_product_code.setText("");
         views.txt_purchase_product_name.setText("");
-        views.txt_purchase_id.setText("");
-        views.txt_purchase_price.setText("");
         views.txt_purchase_amount.setText("");
-        views.txt_purchase_subtotal.setText("");
+        views.txt_purchase_price.setText("");
     }
 
-    private void cleanTableTemp() {
+    public void cleanPurchasesForm() {
+        totalPagar = 0.0;
+        itemPerRow = 0;
+        views.txt_purchase_total_to_pay.setText("");
+        cleanPurchaseInputs();
+    }
+
+    public void cleanTablePurchases() {
         model.setRowCount(0);
+        rowCodes.clear();
+        rowProductIds.clear();
     }
 
-    // =========================================
-    // PARSE SAFE
-    // =========================================
-    private int parseIntSafe(String text) {
-        try { return Integer.parseInt(text.trim()); }
-        catch (Exception e) { return 0; }
-    }
-
-    private double parseDoubleSafe(String text) {
+    public void removeProductFromTable() {
         try {
-            return Double.parseDouble(text.trim().replace(",", "."));
-        } catch (Exception e) { return 0; }
+            int row = views.purchases_table.getSelectedRow();
+            if (row >= 0) {
+                model.removeRow(row);
+                rowCodes.remove(row);
+                rowProductIds.remove(row);
+                calculateTotalPurchase();
+                itemPerRow--;
+            } else {
+                JOptionPane.showMessageDialog(views, "Seleccione un producto de la tabla para eliminar");
+            }
+        } catch (Exception e) {
+            JOptionPane.showMessageDialog(views, "Error al eliminar el producto de la lista");
+        }
     }
 
-    @Override public void mouseClicked(MouseEvent e)  {}
-    @Override public void mousePressed(MouseEvent e)  {}
-    @Override public void mouseReleased(MouseEvent e) {}
-    @Override public void mouseEntered(MouseEvent e)  {}
-    @Override public void mouseExited(MouseEvent e)   {}
-    @Override public void keyTyped(KeyEvent e)        {}
+    @Override
+    public void mouseClicked(MouseEvent e) {}
+
+    @Override
+    public void mousePressed(MouseEvent e) {}
+
+    @Override
+    public void mouseReleased(MouseEvent e) {}
+
+    @Override
+    public void mouseEntered(MouseEvent e) {}
+
+    @Override
+    public void mouseExited(MouseEvent e) {}
 }

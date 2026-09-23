@@ -11,6 +11,7 @@ public class Employees {
     private String email;
     private String password;
     private String rol;
+    private double salary;
     private String created;
     private String update;
 
@@ -106,8 +107,12 @@ public class Employees {
         return update;
     }
 
-    public void setUpdate(String update) {
-        this.update = update;
+    public double getSalary() {
+        return salary;
+    }
+
+    public void setSalary(double salary) {
+        this.salary = salary;
     }
 
     public String getName() {

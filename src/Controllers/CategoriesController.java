@@ -155,6 +155,14 @@ public class CategoriesController implements ActionListener, KeyListener, MouseL
         }
     }
 
+    private String getSafeValue(int row, int col) {
+        if (row < 0 || row >= model.getRowCount() || col < 0 || col >= model.getColumnCount()) {
+            return "";
+        }
+        Object val = views.categories_table.getValueAt(row, col);
+        return val != null ? val.toString().trim() : "";
+    }
+
     // =====================================
     // CLICK TABLA
     // =====================================
@@ -164,10 +172,8 @@ public class CategoriesController implements ActionListener, KeyListener, MouseL
         int row = views.categories_table.getSelectedRow();
 
         if (row >= 0) {
-            views.txt_category_id.setText(
-                    views.categories_table.getValueAt(row, 0).toString());
-            views.txt_category_name.setText(
-                    views.categories_table.getValueAt(row, 1).toString());
+            views.txt_category_id.setText(getSafeValue(row, 0));
+            views.txt_category_name.setText(getSafeValue(row, 1));
         }
     }
 
