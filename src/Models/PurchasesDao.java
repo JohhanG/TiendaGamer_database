@@ -1,7 +1,13 @@
 package Models;
 
-import java.sql.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import javax.swing.JOptionPane;
 
@@ -12,120 +18,169 @@ public class PurchasesDao {
     PreparedStatement pst;
     ResultSet rs;
 
-    // =========================
-    // REGISTRAR COMPRA
-    // ✅ Retorna el ID generado directamente
-    // =========================
-    public int registerPurchaseQuery(int supplierId,
-                                     int employeeId,
-                                     double total) {
-
-        String sql = "INSERT INTO purchases "
-                   + "(supplier_id, employee_id, total, created) "
-                   + "VALUES (?,?,?,NOW())";
+    // =========================================
+    // REGISTRAR ENCABEZADO DE LA COMPRA
+    // =========================================
+    public int registerPurchaseQuery(Purchases purchase) {
+        String query = "INSERT INTO purchases (supplier_id, employee_id, total, estado, created) VALUES (?,?,?,?,?)";
+        Timestamp dateTime = new Timestamp(new Date().getTime());
+        int purchaseId = 0;
 
         try {
             conn = cn.getConnection();
-            pst  = conn.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS);
+            pst = conn.prepareStatement(query, Statement.RETURN_GENERATED_KEYS);
 
-            pst.setInt(1, supplierId);
-            pst.setInt(2, employeeId);
-            pst.setDouble(3, total);
+            pst.setInt(1, purchase.getSupplier_id());
+            pst.setInt(2, purchase.getEmployee_id());
+            pst.setDouble(3, purchase.getTotal());
+            pst.setString(4, purchase.getEstado());
+            pst.setTimestamp(5, dateTime);
 
             pst.executeUpdate();
 
             rs = pst.getGeneratedKeys();
             if (rs.next()) {
-                return rs.getInt(1); // ✅ ID real generado
+                purchaseId = rs.getInt(1);
             }
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al registrar la compra: " + e);
         } finally {
-            try { if (rs   != null) rs.close();   } catch (SQLException ignored) {}
-            try { if (pst  != null) pst.close();  } catch (SQLException ignored) {}
-            try { if (conn != null) conn.close();  } catch (SQLException ignored) {}
+            try {
+                if (rs != null) rs.close();
+                if (pst != null) pst.close();
+                if (conn != null) conn.close();
+            } catch (SQLException ex) {
+                System.out.println(ex.toString());
+            }
         }
-
-        return 0;
+        return purchaseId;
     }
 
-    // =========================
-    // DETALLE COMPRA
-    // =========================
-    public boolean registerPurchaseDetailQuery(int purchaseId,
-                                               int productId,
-                                               int amount,
-                                               double price,
-                                               double subtotal) {
-
-        String sql = "INSERT INTO purchase_details "
-                   + "(purchase_id, product_id, purchase_amount, "
-                   + "purchase_price, purchase_subtotal, purchase_date) "
-                   + "VALUES (?,?,?,?,?,NOW())";
+    // =========================================
+    // REGISTRAR DETALLE DE LA COMPRA
+    // =========================================
+    public boolean registerPurchaseDetailsQuery(int purchaseId, int productId, int amount, double price, double subtotal) {
+        String query = "INSERT INTO purchase_details (purchase_id, product_id, purchase_amount, purchase_price, purchase_subtotal, purchase_date) VALUES (?,?,?,?,?,?)";
+        Timestamp dateTime = new Timestamp(new Date().getTime());
 
         try {
             conn = cn.getConnection();
-            pst  = conn.prepareStatement(sql);
+            pst = conn.prepareStatement(query);
 
             pst.setInt(1, purchaseId);
             pst.setInt(2, productId);
             pst.setInt(3, amount);
             pst.setDouble(4, price);
             pst.setDouble(5, subtotal);
+            pst.setTimestamp(6, dateTime);
 
-            pst.executeUpdate();
+            pst.execute();
             return true;
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al registrar el detalle de la compra: " + e);
             return false;
         } finally {
-            try { if (pst  != null) pst.close();  } catch (SQLException ignored) {}
-            try { if (conn != null) conn.close();  } catch (SQLException ignored) {}
+            try {
+                if (pst != null) pst.close();
+                if (conn != null) conn.close();
+            } catch (SQLException ex) {
+                System.out.println(ex.toString());
+            }
         }
     }
 
-    // =========================
-    // LISTAR COMPRAS
-    // =========================
+    // =========================================
+    // LISTAR TODAS LAS COMPRAS PARA REPORTES
+    // =========================================
     public List<Purchases> listAllPurchasesQuery() {
-
         List<Purchases> listPurchases = new ArrayList<>();
-
-        String sql = "SELECT p.id, "
-                   + "s.name AS supplier, "
-                   + "p.total, "
-                   + "p.created, "
-                   + "e.full_name AS employee "
-                   + "FROM purchases p "
-                   + "INNER JOIN suppliers s ON p.supplier_id = s.id "
-                   + "INNER JOIN employees e ON p.employee_id = e.id "
-                   + "ORDER BY p.id DESC";
-
+        // ✅ Se agregó "p.motivo_cancelacion" al SELECT para poder mostrarlo
+        // en el banner de detalle de la devolución.
+        String query = "SELECT p.id, s.name AS supplier_name, p.total, p.created, p.estado, p.motivo_cancelacion "
+                     + "FROM purchases p "
+                     + "INNER JOIN suppliers s ON p.supplier_id = s.id "
+                     + "ORDER BY p.created DESC";
+        
         try {
             conn = cn.getConnection();
-            pst  = conn.prepareStatement(sql);
-            rs   = pst.executeQuery();
+            pst = conn.prepareStatement(query);
+            rs = pst.executeQuery();
 
             while (rs.next()) {
                 Purchases purchase = new Purchases();
                 purchase.setId(rs.getInt("id"));
-                purchase.setSupplier_name(rs.getString("supplier"));
+                purchase.setSupplier_name(rs.getString("supplier_name"));
                 purchase.setTotal(rs.getDouble("total"));
                 purchase.setCreated(rs.getString("created"));
-                purchase.setEmployee_name(rs.getString("employee"));
+                purchase.setEstado(rs.getString("estado"));
+                purchase.setMotivoCancelacion(rs.getString("motivo_cancelacion")); // ✅ NUEVO
                 listPurchases.add(purchase);
             }
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, e.getMessage());
+            JOptionPane.showMessageDialog(null, "Error al listar las compras: " + e);
         } finally {
-            try { if (rs   != null) rs.close();   } catch (SQLException ignored) {}
-            try { if (pst  != null) pst.close();  } catch (SQLException ignored) {}
-            try { if (conn != null) conn.close();  } catch (SQLException ignored) {}
+            try {
+                if (rs != null) rs.close();
+                if (pst != null) pst.close();
+                if (conn != null) conn.close();
+            } catch (SQLException ex) {
+                System.out.println(ex.toString());
+            }
         }
-
         return listPurchases;
+    }
+
+    // =========================================
+    // CANCELAR COMPRA Y REVERTIR STOCK
+    // =========================================
+    // ✅ CORREGIDO: ahora recibe "motivo" y lo guarda junto con el estado.
+    public boolean cancelPurchaseQuery(int purchaseId, String motivo) {
+        String updatePurchase = "UPDATE purchases SET estado = 'CANCELADA', motivo_cancelacion = ? WHERE id = ?";
+        String getDetails = "SELECT product_id, purchase_amount FROM purchase_details WHERE purchase_id = ?";
+        String updateStock = "UPDATE products SET product_quantity = product_quantity - ? WHERE id = ?";
+
+        try {
+            conn = cn.getConnection();
+            
+            // 1. Cambiar estado de la compra a CANCELADA y guardar el motivo
+            pst = conn.prepareStatement(updatePurchase);
+            pst.setString(1, motivo);
+            pst.setInt(2, purchaseId);
+            pst.executeUpdate();
+            pst.close();
+
+            // 2. Obtener los detalles para descontar el stock del almacén
+            PreparedStatement pstDetails = conn.prepareStatement(getDetails);
+            pstDetails.setInt(1, purchaseId);
+            ResultSet rsDetails = pstDetails.executeQuery();
+
+            while (rsDetails.next()) {
+                int productId = rsDetails.getInt("product_id");
+                int amount = rsDetails.getInt("purchase_amount");
+
+                PreparedStatement pstStock = conn.prepareStatement(updateStock);
+                pstStock.setInt(1, amount);
+                pstStock.setInt(2, productId);
+                pstStock.executeUpdate();
+                pstStock.close();
+            }
+            rsDetails.close();
+            pstDetails.close();
+
+            return true;
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error al cancelar la compra: " + e);
+            return false;
+        } finally {
+            try {
+                if (pst != null) pst.close();
+                if (conn != null) conn.close();
+            } catch (SQLException ex) {
+                System.out.println(ex.toString());
+            }
+        }
     }
 }

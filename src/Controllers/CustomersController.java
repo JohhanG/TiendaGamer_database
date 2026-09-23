@@ -128,9 +128,10 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
                     "Selecciona un cliente para eliminarlo");
             return;
         }
-        String nombre = views.custormers_table.getValueAt(row, 1).toString();
-        int id = Integer.parseInt(
-                views.custormers_table.getValueAt(row, 0).toString());
+        String nombre = getSafeValue(row, 1);
+        String idStr = getSafeValue(row, 0);
+        if (idStr.isEmpty()) return;
+        int id = Integer.parseInt(idStr);
 
         int confirm = JOptionPane.showConfirmDialog(
                 null,
@@ -159,12 +160,20 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
         for (Customers c : list) {
             model.addRow(new Object[]{
                 c.getId(),
-                c.getFull_name(),
-                c.getTelephone(),
-                c.getAddress(),
-                c.getEmail()
+                c.getFull_name() != null ? c.getFull_name() : "",
+                c.getTelephone() != null ? c.getTelephone() : "",
+                c.getAddress() != null ? c.getAddress() : "",
+                c.getEmail() != null ? c.getEmail() : ""
             });
         }
+    }
+
+    private String getSafeValue(int row, int col) {
+        if (row < 0 || row >= model.getRowCount() || col < 0 || col >= model.getColumnCount()) {
+            return "";
+        }
+        Object val = views.custormers_table.getValueAt(row, col);
+        return val != null ? val.toString().trim() : "";
     }
 
     private void refreshTable() {
@@ -177,16 +186,11 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
         if (me.getSource() == views.custormers_table) {
             int row = views.custormers_table.rowAtPoint(me.getPoint());
             if (row >= 0) {
-                views.txt_customer_id.setText(
-                        views.custormers_table.getValueAt(row, 0).toString());
-                views.txt_customer_fullname.setText(
-                        views.custormers_table.getValueAt(row, 1).toString());
-                views.txt_customer_telephone.setText(
-                        views.custormers_table.getValueAt(row, 2).toString());
-                views.txt_customer_address.setText(
-                        views.custormers_table.getValueAt(row, 3).toString());
-                views.txt_customer_email.setText(
-                        views.custormers_table.getValueAt(row, 4).toString());
+                views.txt_customer_id.setText(getSafeValue(row, 0));
+                views.txt_customer_fullname.setText(getSafeValue(row, 1));
+                views.txt_customer_telephone.setText(getSafeValue(row, 2));
+                views.txt_customer_address.setText(getSafeValue(row, 3));
+                views.txt_customer_email.setText(getSafeValue(row, 4));
                 views.btn_register_customer.setEnabled(false);
                 views.txt_customer_id.setEditable(false);
             }

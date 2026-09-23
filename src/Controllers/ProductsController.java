@@ -84,7 +84,11 @@ public class ProductsController implements ActionListener,
     // =====================================
     // REFRESH
     // =====================================
-    private void refreshTable() {
+    // ✅ CORREGIDO: antes era "private", ahora es "public" para poder
+    // llamarlo desde PurchasesController (y SalesController si hiciera falta)
+    // y así refrescar el stock apenas se registre una compra/venta,
+    // sin tener que cerrar y volver a entrar al programa.
+    public void refreshTable() {
         cleanTable();
         listAllProducts();
     }
@@ -222,15 +226,23 @@ public class ProductsController implements ActionListener,
             Object[] row = {
                 p.getId(),
                 p.getCode(),
-                p.getName(),
-                p.getDescription(),
+                p.getName() != null ? p.getName() : "",
+                p.getDescription() != null ? p.getDescription() : "",
                 p.getUnit_price(),
                 p.getProduct_quantity(),
-                p.getCategory_name(),
+                p.getCategory_name() != null ? p.getCategory_name() : "",
                 p.getStatus() == 1 ? "Activo" : "Inactivo"
             };
             model.addRow(row);
         }
+    }
+
+    private String getSafeValue(int row, int col) {
+        if (row < 0 || row >= model.getRowCount() || col < 0 || col >= model.getColumnCount()) {
+            return "";
+        }
+        Object val = model.getValueAt(row, col);
+        return val != null ? val.toString().trim() : "";
     }
 
     // =====================================
@@ -240,17 +252,17 @@ public class ProductsController implements ActionListener,
     public void mouseClicked(MouseEvent e) {
         int row = views.products_table.getSelectedRow();
         if (row >= 0) {
-            views.txt_product_id.setText(model.getValueAt(row, 0).toString());
-            views.txt_product_code.setText(model.getValueAt(row, 1).toString());
-            views.txt_product_name.setText(model.getValueAt(row, 2).toString());
-            views.txt_product_description.setText(model.getValueAt(row, 3).toString());
-            views.txt_product_unit_price.setText(model.getValueAt(row, 4).toString());
+            views.txt_product_id.setText(getSafeValue(row, 0));
+            views.txt_product_code.setText(getSafeValue(row, 1));
+            views.txt_product_name.setText(getSafeValue(row, 2));
+            views.txt_product_description.setText(getSafeValue(row, 3));
+            views.txt_product_unit_price.setText(getSafeValue(row, 4));
 
-            String categoryName = model.getValueAt(row, 6).toString();
+            String categoryName = getSafeValue(row, 6);
             for (int i = 0; i < views.cmd_categories.getItemCount(); i++) {
                 DynamicComboBox item =
                         (DynamicComboBox) views.cmd_categories.getItemAt(i);
-                if (item.getName().equals(categoryName)) {
+                if (item != null && item.getName() != null && item.getName().equals(categoryName)) {
                     views.cmd_categories.setSelectedIndex(i);
                     break;
                 }

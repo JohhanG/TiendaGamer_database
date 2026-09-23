@@ -2,7 +2,6 @@ package Controllers;
 
 import Models.Employees;
 import Models.EmployeesDao;
-import static Models.EmployeesDao.rol_user;
 import Views.SystemView;
 
 import java.awt.event.*;
@@ -15,6 +14,7 @@ public class EmployeesController implements ActionListener, MouseListener, KeyLi
     private Employees employee;
     private EmployeesDao employeeDao;
     private SystemView views;
+    private ReportsController reportsController;
     DefaultTableModel model;
 
     public EmployeesController(Employees employee, EmployeesDao employeeDao, SystemView views) {
@@ -27,116 +27,182 @@ public class EmployeesController implements ActionListener, MouseListener, KeyLi
 
         views.btn_register_employee.addActionListener(this);
         views.btn_update_employee.addActionListener(this);
-        views.btn_delete_employee.addActionListener(this);   // NUEVO
-        views.btn_cancel_employee.addActionListener(this);   // NUEVO
+        views.btn_delete_employee.addActionListener(this);
+        views.btn_cancel_employee.addActionListener(this);
         views.employees_table.addMouseListener(this);
         views.txt_search_employee.addKeyListener(this);
 
         listAllEmployees();
     }
 
+    public void setReportsController(ReportsController reportsController) {
+        this.reportsController = reportsController;
+    }
+
     @Override
     public void actionPerformed(ActionEvent e) {
         if (e.getSource() == views.btn_register_employee) registerEmployee();
         if (e.getSource() == views.btn_update_employee)   updateEmployee();
-        if (e.getSource() == views.btn_delete_employee)   deleteEmployee();   // NUEVO
-        if (e.getSource() == views.btn_cancel_employee)   cancelEmployee();   // NUEVO
+        if (e.getSource() == views.btn_delete_employee)   deleteEmployee();
+        if (e.getSource() == views.btn_cancel_employee)   cancelEmployee();
     }
 
     // =====================================
-    // REGISTRAR
+    // REGISTRAR — encripta contraseña con MD5
     // =====================================
     private void registerEmployee() {
 
         if (emptyFields()) {
-            JOptionPane.showMessageDialog(null, "Todos los campos son obligatorios");
+            JOptionPane.showMessageDialog(null,
+                    "Todos los campos son obligatorios");
             return;
         }
+
+        String rawPassword = "123456"; // Contraseña predeterminada para nuevos empleados
+        if (views.txt_employee_password != null) {
+            String p = String.valueOf(views.txt_employee_password.getPassword()).trim();
+            if (!p.isEmpty()) rawPassword = p;
+        }
+
+        double salary = 0.0;
+        try {
+            String salText = views.txt_employee_salary.getText().trim().replace(",", ".");
+            if (!salText.isEmpty()) {
+                salary = Double.parseDouble(salText);
+            }
+        } catch (NumberFormatException ignored) {}
 
         employee.setFull_name(views.txt_employee_fullname.getText().trim());
         employee.setUsername(views.txt_employee_username.getText().trim());
         employee.setAddress(views.txt_employee_address.getText().trim());
         employee.setTelephone(views.txt_employee_telephone.getText().trim());
         employee.setEmail(views.txt_employee_email.getText().trim());
-        employee.setPassword(String.valueOf(views.txt_employee_password.getPassword()));
+        employee.setPassword(rawPassword); // ✅ el DAO la encripta
         employee.setRol(views.cmb_rol.getSelectedItem().toString());
+        employee.setSalary(salary);
 
         if (employeeDao.registerEmployeeQuery(employee)) {
-            JOptionPane.showMessageDialog(null, "Empleado registrado con éxito");
+            JOptionPane.showMessageDialog(null,
+                    "Empleado registrado con éxito");
             cleanFields();
             listAllEmployees();
+            if (reportsController != null) {
+                reportsController.loadEmployeeSalaries();
+            }
         } else {
-            JOptionPane.showMessageDialog(null, "Error al registrar empleado");
+            JOptionPane.showMessageDialog(null,
+                    "Error al registrar empleado");
         }
     }
 
     // =====================================
-    // MODIFICAR
+    // MODIFICAR — permite cambiar contraseña opcionalmente
     // =====================================
     private void updateEmployee() {
 
         if (views.txt_employee_id.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(null, "Selecciona un empleado primero");
+            JOptionPane.showMessageDialog(null,
+                    "Selecciona un empleado primero");
             return;
         }
 
-        employee.setId(Integer.parseInt(views.txt_employee_id.getText().trim()));
-        employee.setFull_name(views.txt_employee_fullname.getText().trim());
-        employee.setUsername(views.txt_employee_username.getText().trim());
-        employee.setAddress(views.txt_employee_address.getText().trim());
-        employee.setTelephone(views.txt_employee_telephone.getText().trim());
-        employee.setEmail(views.txt_employee_email.getText().trim());
-        employee.setRol(views.cmb_rol.getSelectedItem().toString());
+        double salary = 0.0;
+        try {
+            String salText = views.txt_employee_salary.getText().trim().replace(",", ".");
+            if (!salText.isEmpty()) {
+                salary = Double.parseDouble(salText);
+            }
+        } catch (NumberFormatException ignored) {}
 
-        if (employeeDao.updateEmployeeQuery(employee)) {
-            JOptionPane.showMessageDialog(null, "Empleado actualizado correctamente");
+        employee.setId(Integer.parseInt(
+                views.txt_employee_id.getText().trim()));
+        employee.setFull_name(
+                views.txt_employee_fullname.getText().trim());
+        employee.setUsername(
+                views.txt_employee_username.getText().trim());
+        employee.setAddress(
+                views.txt_employee_address.getText().trim());
+        employee.setTelephone(
+                views.txt_employee_telephone.getText().trim());
+        employee.setEmail(
+                views.txt_employee_email.getText().trim());
+        employee.setRol(
+                views.cmb_rol.getSelectedItem().toString());
+        employee.setSalary(salary);
+
+        // ✅ Si escribió nueva contraseña la actualiza, si no la deja igual
+        String newPassword = String.valueOf(
+                views.txt_employee_password.getPassword()).trim();
+
+        boolean dataOk = employeeDao.updateEmployeeQuery(employee);
+
+        if (dataOk) {
+            // ✅ Solo cambia contraseña si escribió algo
+            if (!newPassword.isEmpty()) {
+                employee.setPassword(newPassword);
+                employeeDao.updateEmployeePassword(employee);
+                JOptionPane.showMessageDialog(null,
+                        "Empleado y contraseña actualizados correctamente");
+            } else {
+                JOptionPane.showMessageDialog(null,
+                        "Empleado actualizado correctamente");
+            }
             cleanFields();
             listAllEmployees();
+            if (reportsController != null) {
+                reportsController.loadEmployeeSalaries();
+            }
         } else {
-            JOptionPane.showMessageDialog(null, "Error al actualizar empleado");
+            JOptionPane.showMessageDialog(null,
+                    "Error al actualizar empleado");
         }
     }
 
     // =====================================
-    // ELIMINAR — con confirmación
+    // ELIMINAR
     // =====================================
     private void deleteEmployee() {
 
         int row = views.employees_table.getSelectedRow();
 
         if (row == -1 || views.txt_employee_id.getText().trim().isEmpty()) {
-            JOptionPane.showMessageDialog(null, "Selecciona un empleado para eliminarlo");
+            JOptionPane.showMessageDialog(null,
+                    "Selecciona un empleado para eliminarlo");
             return;
         }
 
-        String nombre = model.getValueAt(row, 1).toString();
+        String nombre = getSafeValue(row, 1);
 
         int confirm = JOptionPane.showConfirmDialog(
                 null,
-                "¿Estás seguro de que deseas eliminar al empleado \"" + nombre + "\"?\n"
-                + "Esta acción no se puede deshacer.",
+                "¿Estás seguro de que deseas eliminar al empleado \""
+                        + nombre + "\"?\nEsta acción no se puede deshacer.",
                 "Confirmar eliminación",
                 JOptionPane.YES_NO_OPTION,
                 JOptionPane.WARNING_MESSAGE
         );
 
-        if (confirm != JOptionPane.YES_OPTION) {
-            return;
-        }
+        if (confirm != JOptionPane.YES_OPTION) return;
 
-        int id = Integer.parseInt(views.txt_employee_id.getText().trim());
+        int id = Integer.parseInt(
+                views.txt_employee_id.getText().trim());
 
         if (employeeDao.deleteEmployeeQuery(id)) {
-            JOptionPane.showMessageDialog(null, "Empleado eliminado con éxito");
+            JOptionPane.showMessageDialog(null,
+                    "Empleado eliminado con éxito");
             cleanFields();
             listAllEmployees();
+            if (reportsController != null) {
+                reportsController.loadEmployeeSalaries();
+            }
         } else {
-            JOptionPane.showMessageDialog(null, "Error al eliminar empleado");
+            JOptionPane.showMessageDialog(null,
+                    "Error al eliminar empleado");
         }
     }
 
     // =====================================
-    // CANCELAR — limpia campos y restaura estado
+    // CANCELAR
     // =====================================
     private void cancelEmployee() {
         cleanFields();
@@ -148,23 +214,30 @@ public class EmployeesController implements ActionListener, MouseListener, KeyLi
     public void listAllEmployees() {
 
         List<Employees> list = employeeDao.listEmployeesQuery(
-                views.txt_search_employee.getText().trim()
-        );
+                views.txt_search_employee.getText().trim());
 
         model.setRowCount(0);
 
         for (Employees emp : list) {
-            Object[] row = {
+            model.addRow(new Object[]{
                 emp.getId(),
-                emp.getFull_name(),
-                emp.getUsername(),
-                emp.getAddress(),
-                emp.getTelephone(),
-                emp.getEmail(),
-                emp.getRol()
-            };
-            model.addRow(row);
+                emp.getFull_name() != null ? emp.getFull_name() : "",
+                emp.getUsername() != null ? emp.getUsername() : "",
+                emp.getAddress() != null ? emp.getAddress() : "",
+                emp.getTelephone() != null ? emp.getTelephone() : "",
+                emp.getEmail() != null ? emp.getEmail() : "",
+                emp.getRol() != null ? emp.getRol() : "",
+                String.format(java.util.Locale.US, "%.2f", emp.getSalary())
+            });
         }
+    }
+
+    private String getSafeValue(int row, int col) {
+        if (row < 0 || row >= model.getRowCount() || col < 0 || col >= model.getColumnCount()) {
+            return "";
+        }
+        Object val = model.getValueAt(row, col);
+        return val != null ? val.toString().trim() : "";
     }
 
     // =====================================
@@ -176,16 +249,28 @@ public class EmployeesController implements ActionListener, MouseListener, KeyLi
         int row = views.employees_table.getSelectedRow();
 
         if (row >= 0) {
-            views.txt_employee_id.setText(model.getValueAt(row, 0).toString());
-            views.txt_employee_fullname.setText(model.getValueAt(row, 1).toString());
-            views.txt_employee_username.setText(model.getValueAt(row, 2).toString());
-            views.txt_employee_address.setText(model.getValueAt(row, 3).toString());
-            views.txt_employee_telephone.setText(model.getValueAt(row, 4).toString());
-            views.txt_employee_email.setText(model.getValueAt(row, 5).toString());
-            views.cmb_rol.setSelectedItem(model.getValueAt(row, 6).toString());
+            views.txt_employee_id.setText(getSafeValue(row, 0));
+            views.txt_employee_fullname.setText(getSafeValue(row, 1));
+            views.txt_employee_username.setText(getSafeValue(row, 2));
+            views.txt_employee_address.setText(getSafeValue(row, 3));
+            views.txt_employee_telephone.setText(getSafeValue(row, 4));
+            views.txt_employee_email.setText(getSafeValue(row, 5));
+            
+            String rol = getSafeValue(row, 6);
+            if (!rol.isEmpty()) {
+                views.cmb_rol.setSelectedItem(rol);
+            }
 
+            String salaryStr = getSafeValue(row, 7);
+            if (salaryStr.isEmpty()) {
+                salaryStr = "0.00";
+            }
+            views.txt_employee_salary.setText(salaryStr);
+
+            if (views.txt_employee_password != null) {
+                views.txt_employee_password.setText("");
+            }
             views.txt_employee_id.setEditable(false);
-            views.txt_employee_password.setEnabled(false); // no editar contraseña al modificar
             views.btn_register_employee.setEnabled(false);
         }
     }
@@ -208,8 +293,7 @@ public class EmployeesController implements ActionListener, MouseListener, KeyLi
                 || views.txt_employee_username.getText().trim().isEmpty()
                 || views.txt_employee_address.getText().trim().isEmpty()
                 || views.txt_employee_telephone.getText().trim().isEmpty()
-                || views.txt_employee_email.getText().trim().isEmpty()
-                || views.txt_employee_password.getPassword().length == 0;
+                || views.txt_employee_email.getText().trim().isEmpty();
     }
 
     public void cleanFields() {
@@ -219,10 +303,13 @@ public class EmployeesController implements ActionListener, MouseListener, KeyLi
         views.txt_employee_address.setText("");
         views.txt_employee_telephone.setText("");
         views.txt_employee_email.setText("");
-        views.txt_employee_password.setText("");
-        if (views.cmb_rol.getItemCount() > 0) views.cmb_rol.setSelectedIndex(0);
+        if (views.txt_employee_password != null) {
+            views.txt_employee_password.setText("");
+        }
+        views.txt_employee_salary.setText("");
+        if (views.cmb_rol.getItemCount() > 0)
+            views.cmb_rol.setSelectedIndex(0);
         views.txt_employee_id.setEditable(true);
-        views.txt_employee_password.setEnabled(true);
         views.btn_register_employee.setEnabled(true);
     }
 
