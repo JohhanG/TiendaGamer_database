@@ -1,1 +1,11 @@
+# Compilados y empaquetados
 /dist/
+/build/
+
+# Configuración privada de NetBeans
+/nbproject/private/
+
+# Credenciales y configuración local de base de datos
+db.properties
+*.properties.local
+

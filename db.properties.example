@@ -1,0 +1,13 @@
+# ==============================================================
+# Plantilla de Conexión a Base de Datos MySQL - Tienda Gamer
+# ==============================================================
+# INSTRUCCIONES:
+# 1. Copia o renombra este archivo como "db.properties" en la raíz del proyecto.
+# 2. Configura los parámetros de acuerdo a tu servidor MySQL local.
+#    (Si utilizas XAMPP con la configuración por defecto, la contraseña suele ser vacía).
+# ==============================================================
+db.host=localhost
+db.port=3306
+db.name=tiendagamer_database
+db.user=root
+db.password=
