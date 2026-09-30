@@ -14,11 +14,14 @@ Sistema integral de escritorio para la administración operativa, comercial y de
 1. [Características Principales](#-características-principales)
 2. [Matriz de Control de Acceso (RBAC)](#-matriz-de-control-de-acceso-rbac)
 3. [Módulos del Sistema](#-módulos-del-sistema)
-4. [Requisitos del Sistema](#-requisitos-del-sistema)
-5. [Instalación y Puesta en Marcha](#-instalación-y-puesta-en-marcha)
-6. [Credenciales de Prueba](#-credenciales-de-prueba)
-7. [Estructura del Proyecto](#-estructura-del-proyecto)
-8. [Buenas Prácticas y Seguridad](#-buenas-prácticas-y-seguridad)
+4. [Diagramas y Flujos Operativos](#-diagramas-y-flujos-operativos)
+5. [Conceptos Técnicos Clave](#-conceptos-técnicos-clave)
+6. [Requisitos del Sistema](#-requisitos-del-sistema)
+7. [Instalación y Puesta en Marcha](#-instalación-y-puesta-en-marcha)
+8. [Credenciales de Prueba](#-credenciales-de-prueba)
+9. [Estructura del Proyecto](#-estructura-del-proyecto)
+10. [Buenas Prácticas y Seguridad](#-buenas-prácticas-y-seguridad)
+11. [Entregables del Proyecto](#-entregables-del-proyecto)
 
 ---
 
@@ -37,7 +40,7 @@ Sistema integral de escritorio para la administración operativa, comercial y de
 
 ## 🛡️ Matriz de Control de Acceso (RBAC)
 
-El sistema implementa formalmente la matriz de privilegios y perfiles definida para la empresa:
+El sistema implementa formalmente la matriz de privilegios y perfiles definida para la empresa (conforme a la **Figura 2 / Página 11** de la documentación técnica):
 
 | Módulo / Funcionalidad | Gerente / Administrador | Jefe de Compras | Almacenista / Bodega | Vendedor / Cajero |
 | :--- | :---: | :---: | :---: | :---: |
@@ -87,12 +90,118 @@ El sistema implementa formalmente la matriz de privilegios y perfiles definida p
 
 ---
 
+## 🔄 Diagramas y Flujos Operativos
+
+### 1. Flujo de Autenticación y Control de Acceso (Login & RBAC)
+
+```mermaid
+flowchart TD
+    A["Formulario de Login (LoginView)"] --> B["Ingreso de Usuario y Contraseña"]
+    B --> C["LoginController: Encripta MD5 y evalúa intentos"]
+    C --> D["EmployeesDao.loginQuery()"]
+    D --> E[("Base de Datos MySQL")]
+    E --> F{"¿Credenciales Válidas?"}
+    F -- "No" --> G["Incrementa contador de fallos"]
+    G --> H{"¿Intentos >= 3?"}
+    H -- "Sí" --> I["🔒 Bloqueo de seguridad preventivo"]
+    H -- "No" --> J["❌ Alerta: Credenciales incorrectas"]
+    F -- "Sí" --> K["Registra acceso en activity_log"]
+    K --> L["Abre SystemView e inicia Timer de Inactividad (15 min)"]
+    L --> M["SettingsControllers: Aplica Matriz RBAC"]
+    M --> N{"Apertura de Módulo según Rol"}
+    N -->|"Administrador General"| O["Pestaña Productos (Acceso Total)"]
+    N -->|"Jefe de Compras"| P["Pestaña Compras y Proveedores"]
+    N -->|"Almacenista / Bodega"| Q["Pestaña Kardex y Ajuste Físico"]
+    N -->|"Vendedor / Cajero"| R["Pestaña Ventas (Punto de Venta)"]
+```
+
+---
+
+### 2. Flujo de una Venta con Descuento de Stock y Kardex
+
+```mermaid
+flowchart TD
+    A["Vendedor ingresa Código + Enter"] --> B["ProductsDao.searchCode()"]
+    B --> C[("MySQL: Consulta existencia y precio")]
+    C --> D["Muestra datos y stock disponible en pantalla"]
+    D --> E["Ingresar cantidad a vender"]
+    E --> F{"¿Cantidad <= Stock?"}
+    F -- "No" --> G["❌ Alerta: Stock insuficiente en bodega"]
+    F -- "Sí" --> H["Calcula Subtotal y agrega ítem a sales_table"]
+    H --> I["Clic en 'Generar Venta'"]
+    I --> J["Transacción Atómica de Venta"]
+    J --> K[("INSERT cabecera en sales")]
+    J --> L[("INSERT detalle en sale_details")]
+    J --> M[("UPDATE products: stock = stock - cantidad")]
+    J --> N[("INSERT kardex: SALIDA / Tipo 1")]
+    N --> O["Genera e imprime comprobante de pago"]
+    O --> P["Refresca Kardex y Catálogo en tiempo real"]
+```
+
+---
+
+### 3. Flujo de Compras y Abastecimiento
+
+```mermaid
+flowchart TD
+    A["Seleccionar Proveedor y Producto"] --> B["Ingresar Cantidad y Precio de Compra"]
+    B --> C["Clic en 'Comprar'"]
+    C --> D["Transacción de Abastecimiento"]
+    D --> E[("INSERT cabecera en purchases")]
+    D --> F[("INSERT detalle en purchase_details")]
+    D --> G[("UPDATE products: stock = stock + cantidad")]
+    D --> H[("INSERT kardex: ENTRADA / Tipo 2")]
+    H --> I["Actualiza Catálogo y Existencias en vivo"]
+```
+
+---
+
+### 4. Flujo de Ajuste por Inventario Físico (Bodega y Kardex)
+
+```mermaid
+flowchart TD
+    A["Clic en '+ Ajuste por Inventario Físico'"] --> B{"¿Es Administrador o Almacenista?"}
+    B -- "No" --> C["❌ Acceso Denegado por Matriz RBAC"]
+    B -- "Sí" --> D["Abre Diálogo Modal JDialog"]
+    D --> E["Seleccionar Producto (muestra stock actual)"]
+    E --> F{"Modo de Regularización"}
+    F -->|"Conteo Físico Real"| G["Ingresa conteo verificado en estantería"]
+    F -->|"Diferencia Manual"| H["Ingresa diferencia (+/-)"]
+    G --> I["Calcula automáticamente nuevo stock"]
+    H --> I
+    I --> J["Ingresa Justificación / Motivo obligatorio"]
+    J --> K{"¿Stock Resultante >= 0?"}
+    K -- "No" --> L["❌ Error: El stock no puede ser negativo"]
+    K -- "Sí" --> M["Confirma Transacción de Ajuste"]
+    M --> N[("UPDATE products: stock = nuevoStock")]
+    M --> O[("INSERT kardex: AJUSTE / Tipo 5")]
+    O --> P["Cierra modal y refresca Kardex y Productos"]
+```
+
+---
+
+## 🔑 Conceptos Técnicos Clave
+
+| Concepto Técnico | Implementación en el Proyecto |
+| :--- | :--- |
+| **`PreparedStatement`** | Utilizado en el 100% de las operaciones DAO para prevenir ataques de inyección SQL. |
+| **`Patrón MVC`** | Desacopla la lógica de datos (`Models`), la interfaz gráfica (`Views`) y la lógica de negocio (`Controllers`). |
+| **`Encapsulamiento`** | Atributos privados con métodos de acceso `getters` y `setters` en todas las clases de entidad. |
+| **`Borrado Lógico`** | Cambio de estado (`status = 0`) para preservar la integridad referencial histórica de ventas y compras. |
+| **`DynamicComboBox`** | Desacopla la representación textual que ve el usuario (nombre) del valor relacional que almacena la BD (ID). |
+| **`DefaultTableModel`** | Modelado dinámico de tablas desacoplado con bloqueo de edición de celdas (`isCellEditable = false`). |
+| **`Renderers Personalizados`** | Estilizado dinámico con `TableCellRenderer` para asignar colores según el efecto (verde/rojo/índigo). |
+| **`AbstractBorder` y `Graphics2D`** | Bordes redondeados y efectos interactivos *hover/active* dibujados con antialiasing en el sidebar del menú. |
+| **`Timer AWT & Inactividad`** | Monitoreo global de eventos de mouse y teclado para suspender la sesión tras 15 minutos de inactividad. |
+
+---
+
 ## 💻 Requisitos del Sistema
 
-* **Java Development Kit (JDK)**: Versión 17 o superior (probado y compatible con JDK 25 Adoptium).
+* **Java Development Kit (JDK)**: Versión 17 o superior (probado y verificado en JDK 25 Adoptium).
 * **Motor de Base de Datos**: MySQL Server 8.0+ o MariaDB (incluido en XAMPP / WampServer).
 * **IDE Recomendado**: Apache NetBeans 17 o superior.
-* **Resolución recomendada**: 1280 x 720 o superior.
+* **Resolución recomendada**: 1280 x 720 píxeles o superior.
 
 ---
 
@@ -102,8 +211,8 @@ Sigue estos sencillos pasos para ejecutar el proyecto en tu máquina local:
 
 ### 1. Clonar el Repositorio
 ```bash
-git clone https://github.com/JohhanG/TiendaGamer.git
-cd TiendaGamer
+git clone https://github.com/JohhanG/TiendaGamer_database.git
+cd TiendaGamer_database
 ```
 
 ### 2. Importar la Base de Datos
@@ -132,7 +241,7 @@ Para proteger tus contraseñas y facilitar la evaluación:
 
 ### 4. Abrir y Ejecutar en NetBeans
 1. Abre **Apache NetBeans**.
-2. Ve a **File** $\rightarrow$ **Open Project...** y selecciona la carpeta del proyecto `TiendaGamer`.
+2. Ve a **File** $\rightarrow$ **Open Project...** y selecciona la carpeta del proyecto.
 3. Haz clic derecho sobre el proyecto y selecciona **Clean and Build**.
 4. Presiona **F6** o haz clic en **Run Project** para iniciar el sistema.
 
@@ -200,3 +309,21 @@ TiendaGamer/
 4. **Integridad Referencial y ACID**: Manejo de claves foráneas entre `kardex`, `products`, `employees`, `purchases` y `sales`.
 5. **Auditoría de Sesiones**: Registro automático de eventos de acceso, salida y cierres por inactividad en la tabla `activity_log`.
 6. **Defensa contra Nulos**: Verificaciones de seguridad (`getSafeValue`) en controladores para prevenir excepciones de tipo `NullPointerException`.
+
+---
+
+## 📁 Entregables del Proyecto
+
+- [x] Código fuente completo implementado en Java con arquitectura MVC
+- [x] Script de base de datos relacional con esquema y datos (`database/tiendagamer_database.sql`)
+- [x] Control de Acceso Basado en Roles (RBAC) con 4 perfiles oficiales
+- [x] Módulo integral de Kardex y Ajustes de Inventario Físico
+- [x] Sincronización completa de Compras, Ventas y Devoluciones con Kardex
+- [x] Interfaz gráfica estilizada en FlatLaf con soporte Modo Claro / Oscuro
+- [x] README y documentación técnica completa con diagramas de flujo
+- [ ] Diapositivas de exposición final
+- [ ] Manual de usuario final
+
+---
+
+*Proyecto desarrollado para las asignaturas de Base de Datos y Programación I — Ingeniería de Sistemas / Tecnología en Sistemas de Información — 2025 / 2026*
