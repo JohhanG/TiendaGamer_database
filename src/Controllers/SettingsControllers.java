@@ -30,49 +30,136 @@ public class SettingsControllers {
     private javax.swing.JPanel activePanel = null;
     private JLabel activeLabel = null;
 
-    private static final int TAB_PURCHASES  = 0;
-    private static final int TAB_SALES      = 1;
-    private static final int TAB_CUSTOMERS  = 2;
-    private static final int TAB_EMPLOYEES  = 3;
-    private static final int TAB_SUPPLIERS  = 4;
-    private static final int TAB_CATEGORIES = 5;
-    private static final int TAB_REPORTS    = 6;
-    private static final int TAB_SETTINGS   = 7;
-    private static final int TAB_PRODUCTS   = 8;
+    public static final int TAB_PURCHASES  = 0;
+    public static final int TAB_SALES      = 1;
+    public static final int TAB_CUSTOMERS  = 2;
+    public static final int TAB_EMPLOYEES  = 3;
+    public static final int TAB_SUPPLIERS  = 4;
+    public static final int TAB_CATEGORIES = 5;
+    public static final int TAB_REPORTS    = 6;
+    public static final int TAB_SETTINGS   = 7;
+    public static final int TAB_PRODUCTS   = 8;
+    public static final int TAB_KARDEX     = 9;
 
     public SettingsControllers(SystemView views, Employees loggedEmployee) {
         this.views           = views;
         this.loggedEmployee  = loggedEmployee;
         this.employeesDao    = new EmployeesDao();
 
-        views.jTabbedPane1.setSelectedIndex(TAB_PRODUCTS);
-        setActive(views.jPanelProducts, views.jLabelProducts);
+        // 1. Configurar navegación de todos los 10 módulos con control RBAC (Figura 2 / Pág. 11)
+        addNavListener(views.jPanelProducts,   views.jLabelProducts,   TAB_PRODUCTS);
+        addNavListener(views.jPanelPurchases,  views.jLabelPurchases,  TAB_PURCHASES);
+        addNavListener(views.jPanelSales,      views.jLabelSales,      TAB_SALES);
+        addNavListener(views.jPanelKardex,     views.jLabelKardex,     TAB_KARDEX);
+        addNavListener(views.jPanelCustomers,  views.jLabelCustomers,  TAB_CUSTOMERS);
+        addNavListener(views.jPanelEmployees,  views.jLabelEmployees,  TAB_EMPLOYEES);
+        addNavListener(views.jPanelSupplimers, views.jLabelSupplimers, TAB_SUPPLIERS);
+        addNavListener(views.jPanelCategories, views.jLabelCategories, TAB_CATEGORIES);
+        addNavListener(views.jPanelReports,    views.jLabelReports,    TAB_REPORTS);
+        addNavListener(views.jPanelSettings,   views.jLabelSettings,   TAB_SETTINGS);
 
-        addNavListener(views.jPanelProducts,   views.jLabelProducts,   TAB_PRODUCTS,   false);
-        addNavListener(views.jPanelPurchases,  views.jLabelPurchases,  TAB_PURCHASES,  false);
-        addNavListener(views.jPanelSales,      views.jLabelSales,      TAB_SALES,      false);
-        addNavListener(views.jPanelCustomers,  views.jLabelCustomers,  TAB_CUSTOMERS,  false);
-        addNavListener(views.jPanelEmployees,  views.jLabelEmployees,  TAB_EMPLOYEES,  true);
-        addNavListener(views.jPanelSupplimers, views.jLabelSupplimers, TAB_SUPPLIERS,  true);
-        addNavListener(views.jPanelCategories, views.jLabelCategories, TAB_CATEGORIES, true);
-        addNavListener(views.jPanelReports,    views.jLabelReports,    TAB_REPORTS,    false);
-        addNavListener(views.jPanelSettings,   views.jLabelSettings,   TAB_SETTINGS,   false);
+        // 2. Determinar pestaña inicial según el rol del usuario logueado
+        int initialTab = TAB_PRODUCTS;
+        javax.swing.JPanel initialPanel = views.jPanelProducts;
+        JLabel initialLabel = views.jLabelProducts;
 
-        if (isAuxiliar()) {
-            lockItem(views.jPanelEmployees, views.jLabelEmployees);
-            lockItem(views.jPanelSupplimers, views.jLabelSupplimers);
-            lockItem(views.jPanelCategories, views.jLabelCategories);
-            lockProductButtons();
+        if (isJefeCompras()) {
+            initialTab = TAB_PURCHASES;
+            initialPanel = views.jPanelPurchases;
+            initialLabel = views.jLabelPurchases;
+        } else if (isAlmacenista()) {
+            initialTab = TAB_KARDEX;
+            initialPanel = views.jPanelKardex;
+            initialLabel = views.jLabelKardex;
+        } else if (isVendedor()) {
+            initialTab = TAB_SALES;
+            initialPanel = views.jPanelSales;
+            initialLabel = views.jLabelSales;
         }
 
-        // ✅ Cargar datos del perfil al iniciar
+        views.jTabbedPane1.setSelectedIndex(initialTab);
+        setActive(initialPanel, initialLabel);
+
+        // 3. Bloqueos de acciones para usuarios no administradores (modo solo lectura para catálogo)
+        if (!isAdmin()) {
+            lockProductButtons();
+            lockSalaryButtons();
+        }
+
+        // 4. Cargar datos del perfil al iniciar
         loadProfileData();
 
-        // ✅ Botón Modificar — solo cambia la contraseña
+        // 5. Botón Modificar — solo cambia la contraseña
         views.btn_modify_data.addActionListener((ActionEvent e) -> updatePassword());
     }
 
-    // ✅ Carga los datos del empleado logueado en los campos de perfil
+    // Normalizar rol del usuario
+    public String getRoleNormalized() {
+        if (loggedEmployee == null || loggedEmployee.getRol() == null) return "vendedor";
+        String r = loggedEmployee.getRol().toLowerCase().trim();
+        if (r.contains("admin") || r.contains("gerente")) return "admin";
+        if (r.contains("compra")) return "compras";
+        if (r.contains("almacen") || r.contains("bodega")) return "almacen";
+        return "vendedor";
+    }
+
+    public boolean isAdmin() {
+        return "admin".equals(getRoleNormalized());
+    }
+
+    public boolean isJefeCompras() {
+        return "compras".equals(getRoleNormalized());
+    }
+
+    public boolean isAlmacenista() {
+        return "almacen".equals(getRoleNormalized());
+    }
+
+    public boolean isVendedor() {
+        return "vendedor".equals(getRoleNormalized());
+    }
+
+    // Compatibilidad con código previo
+    public boolean isAuxiliar() {
+        return !isAdmin();
+    }
+
+    // Matriz Oficial RBAC (Figura 2 / Pág. 11 del Proyecto)
+    public boolean isTabAllowed(int tabIndex) {
+        if (isAdmin()) {
+            return true; // Administrador General: acceso total
+        }
+
+        if (isJefeCompras()) {
+            // Jefe de Compras: Proveedores, Compras, Detalle, Productos (Catálogo), Reportes (Compras), Perfil
+            return tabIndex == TAB_PURCHASES
+                || tabIndex == TAB_SUPPLIERS
+                || tabIndex == TAB_PRODUCTS
+                || tabIndex == TAB_REPORTS
+                || tabIndex == TAB_SETTINGS;
+        }
+
+        if (isAlmacenista()) {
+            // Almacenista / Bodega: Kardex, Ajuste Físico, Productos (Catálogo), Compras (Recepción), Categorías, Perfil
+            return tabIndex == TAB_KARDEX
+                || tabIndex == TAB_PRODUCTS
+                || tabIndex == TAB_PURCHASES
+                || tabIndex == TAB_CATEGORIES
+                || tabIndex == TAB_SETTINGS;
+        }
+
+        if (isVendedor()) {
+            // Vendedor / Cajero / Auxiliar: Ventas, Clientes, Productos (Precios/Stock), Perfil
+            return tabIndex == TAB_SALES
+                || tabIndex == TAB_CUSTOMERS
+                || tabIndex == TAB_PRODUCTS
+                || tabIndex == TAB_SETTINGS;
+        }
+
+        return false;
+    }
+
+    // Carga los datos del empleado logueado en los campos de perfil
     private void loadProfileData() {
         try {
             views.txt_id_profile.setText(
@@ -90,7 +177,7 @@ public class SettingsControllers {
         }
     }
 
-    // ✅ Solo actualiza la contraseña
+    // Solo actualiza la contraseña
     private void updatePassword() {
         String newPass     = new String(
                 views.txt_password_modify.getPassword()).trim();
@@ -115,7 +202,6 @@ public class SettingsControllers {
             return;
         }
 
-        // ✅ Usa el método existente en EmployeesDao
         loggedEmployee.setPassword(newPass);
         boolean ok = employeesDao.updateEmployeePassword(loggedEmployee);
 
@@ -173,11 +259,18 @@ public class SettingsControllers {
         };
     }
 
-    private void addNavListener(javax.swing.JPanel panel, JLabel label, int tabIndex, boolean adminOnly) {
+    private void addNavListener(javax.swing.JPanel panel, JLabel label, int tabIndex) {
+        if (panel == null || label == null) return;
+        boolean allowed = isTabAllowed(tabIndex);
+
+        if (!allowed) {
+            lockItem(panel, label);
+        }
+
         MouseAdapter adapter = new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                if (adminOnly && isAuxiliar()) {
+                if (!isTabAllowed(tabIndex)) {
                     showAccessDenied();
                     return;
                 }
@@ -187,7 +280,7 @@ public class SettingsControllers {
 
             @Override
             public void mouseEntered(MouseEvent e) {
-                if (adminOnly && isAuxiliar()) return;
+                if (!isTabAllowed(tabIndex)) return;
                 panel.setCursor(new Cursor(Cursor.HAND_CURSOR));
                 label.setCursor(new Cursor(Cursor.HAND_CURSOR));
                 if (panel != activePanel) {
@@ -199,7 +292,7 @@ public class SettingsControllers {
 
             @Override
             public void mouseExited(MouseEvent e) {
-                if (adminOnly && isAuxiliar()) return;
+                if (!isTabAllowed(tabIndex)) return;
                 java.awt.Point p = javax.swing.SwingUtilities.convertPoint((Component) e.getSource(), e.getPoint(), panel);
                 if (!panel.contains(p)) {
                     if (panel != activePanel) {
@@ -216,6 +309,8 @@ public class SettingsControllers {
     }
 
     public void setActive(javax.swing.JPanel panel, JLabel label) {
+        if (panel == null && label == null) return;
+
         if (activePanel != null) {
             activePanel.setBorder(null);
             activePanel.repaint();
@@ -245,35 +340,57 @@ public class SettingsControllers {
     }
 
     private void lockItem(javax.swing.JPanel panel, JLabel label) {
-        label.setForeground(TEXT_LOCKED);
-        label.setEnabled(false);
-        label.setToolTipText("Solo Administrador");
-        panel.setToolTipText("Solo Administrador");
-        label.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-        panel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
-        panel.repaint();
-    }
-
-    private void lockLabel(JLabel label) {
-        lockItem(null, label);
+        if (label != null) {
+            label.setForeground(TEXT_LOCKED);
+            label.setEnabled(false);
+            label.setToolTipText("Módulo restringido para tu perfil");
+            label.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+        }
+        if (panel != null) {
+            panel.setToolTipText("Módulo restringido para tu perfil");
+            panel.setCursor(new Cursor(Cursor.DEFAULT_CURSOR));
+            panel.repaint();
+        }
     }
 
     private void lockProductButtons() {
-        views.btn_register_product.setEnabled(false);
-        views.btn_update_product.setEnabled(false);
-        views.btn_delete_product.setEnabled(false);
-        views.btn_activate_product.setEnabled(false);
+        if (views.btn_register_product != null) {
+            views.btn_register_product.setEnabled(false);
+            views.btn_register_product.setToolTipText("Solo Administrador (Catálogo en solo lectura)");
+        }
+        if (views.btn_update_product != null) {
+            views.btn_update_product.setEnabled(false);
+            views.btn_update_product.setToolTipText("Solo Administrador (Catálogo en solo lectura)");
+        }
+        if (views.btn_delete_product != null) {
+            views.btn_delete_product.setEnabled(false);
+            views.btn_delete_product.setToolTipText("Solo Administrador (Catálogo en solo lectura)");
+        }
+        if (views.btn_activate_product != null) {
+            views.btn_activate_product.setEnabled(false);
+            views.btn_activate_product.setToolTipText("Solo Administrador (Catálogo en solo lectura)");
+        }
     }
 
-    public boolean isAuxiliar() {
-        return loggedEmployee.getRol().equalsIgnoreCase("auxiliar");
+    private void lockSalaryButtons() {
+        if (views.btn_edit_salary != null) {
+            views.btn_edit_salary.setEnabled(false);
+            views.btn_edit_salary.setToolTipText("Solo Administrador General");
+        }
+        if (views.txt_employee_salary != null) {
+            views.txt_employee_salary.setEnabled(false);
+            views.txt_employee_salary.setToolTipText("Solo Administrador General");
+        }
     }
 
     private void showAccessDenied() {
+        String rolActual = (loggedEmployee != null && loggedEmployee.getRol() != null)
+                ? loggedEmployee.getRol() : "Usuario";
         JOptionPane.showMessageDialog(
-                null,
-                "No tienes permisos de Administrador",
-                "Acceso denegado",
+                views,
+                "Acceso Restringido:\nTu perfil actual ('" + rolActual + "') no tiene permisos autorizados\n" +
+                "para acceder a este módulo según la matriz de seguridad RBAC del sistema.",
+                "Acceso Denegado",
                 JOptionPane.INFORMATION_MESSAGE
         );
     }

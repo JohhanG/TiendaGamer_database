@@ -16,18 +16,15 @@ public class KardexDao {
 
     // Asegurar que existan los tipos de movimiento en la base de datos
     private void asegurarTiposMovimiento(Connection con) {
-        String checkSql = "SELECT COUNT(*) FROM tipos_movimiento";
         String insertSql = "INSERT INTO tipos_movimiento (idTipoMov, nombre, efecto) VALUES "
                 + "(1, 'VENTA', 'SALIDA'), "
                 + "(2, 'COMPRA', 'ENTRADA'), "
                 + "(3, 'DEVOLUCION CLIENTE', 'ENTRADA'), "
-                + "(4, 'DEVOLUCION PROVEEDOR', 'SALIDA') "
+                + "(4, 'DEVOLUCION PROVEEDOR', 'SALIDA'), "
+                + "(5, 'AJUSTE INVENTARIO', 'AJUSTE') "
                 + "ON DUPLICATE KEY UPDATE nombre=VALUES(nombre), efecto=VALUES(efecto)";
-        try (java.sql.Statement st = con.createStatement();
-             ResultSet rsCheck = st.executeQuery(checkSql)) {
-            if (rsCheck.next() && rsCheck.getInt(1) == 0) {
-                st.executeUpdate(insertSql);
-            }
+        try (java.sql.Statement st = con.createStatement()) {
+            st.executeUpdate(insertSql);
         } catch (SQLException ignored) {}
     }
 
@@ -115,5 +112,132 @@ public class KardexDao {
             }
         }
         return lista;
+    }
+
+    // Listar todos los movimientos con datos enriquecidos de producto, tipo y empleado
+    public List<Kardex> listarTodoElKardex(String search, String tipoFiltro) {
+        List<Kardex> lista = new ArrayList<>();
+        StringBuilder sql = new StringBuilder();
+        sql.append("SELECT k.idKardex, k.idProducto, k.idTipoMov, k.idEmpleado, k.cantidad, k.efecto, ")
+           .append("k.saldoAnterior, k.saldoResultante, k.fecha, k.observacion, ")
+           .append("p.code AS prod_code, p.name AS prod_name, tm.nombre AS tipo_nombre, e.full_name AS emp_nombre ")
+           .append("FROM kardex k ")
+           .append("LEFT JOIN products p ON k.idProducto = p.id ")
+           .append("LEFT JOIN tipos_movimiento tm ON k.idTipoMov = tm.idTipoMov ")
+           .append("LEFT JOIN employees e ON k.idEmpleado = e.id ")
+           .append("WHERE 1=1 ");
+
+        boolean hasSearch = (search != null && !search.trim().isEmpty());
+        if (hasSearch) {
+            sql.append("AND (p.name LIKE ? OR CAST(p.code AS CHAR) LIKE ? OR k.observacion LIKE ?) ");
+        }
+
+        boolean hasFilter = (tipoFiltro != null && !tipoFiltro.trim().isEmpty() && !"Todos".equalsIgnoreCase(tipoFiltro));
+        if (hasFilter) {
+            sql.append("AND tm.nombre LIKE ? ");
+        }
+
+        sql.append("ORDER BY k.fecha DESC, k.idKardex DESC");
+
+        try {
+            con = cn.getConnection();
+            asegurarTiposMovimiento(con);
+            ps = con.prepareStatement(sql.toString());
+            int paramIdx = 1;
+            if (hasSearch) {
+                String term = "%" + search.trim() + "%";
+                ps.setString(paramIdx++, term);
+                ps.setString(paramIdx++, term);
+                ps.setString(paramIdx++, term);
+            }
+            if (hasFilter) {
+                ps.setString(paramIdx++, "%" + tipoFiltro.trim() + "%");
+            }
+
+            rs = ps.executeQuery();
+            while (rs.next()) {
+                Kardex k = new Kardex();
+                k.setIdKardex(rs.getInt("idKardex"));
+                k.setIdProducto(rs.getInt("idProducto"));
+                k.setIdTipoMov(rs.getInt("idTipoMov"));
+                k.setIdEmpleado(rs.getInt("idEmpleado"));
+                k.setCantidad(rs.getInt("cantidad"));
+                k.setEfecto(rs.getString("efecto"));
+                k.setSaldoAnterior(rs.getInt("saldoAnterior"));
+                k.setSaldoResultante(rs.getInt("saldoResultante"));
+                k.setFecha(rs.getTimestamp("fecha"));
+                k.setObservacion(rs.getString("observacion"));
+
+                k.setProductCode(rs.getInt("prod_code"));
+                k.setProductName(rs.getString("prod_name") != null ? rs.getString("prod_name") : "Producto #" + k.getIdProducto());
+                k.setTipoMovNombre(rs.getString("tipo_nombre") != null ? rs.getString("tipo_nombre") : "MOVIMIENTO #" + k.getIdTipoMov());
+                k.setEmployeeName(rs.getString("emp_nombre") != null ? rs.getString("emp_nombre") : "Empleado #" + k.getIdEmpleado());
+
+                lista.add(k);
+            }
+        } catch (SQLException e) {
+            System.out.println("Error al listar todo el Kardex: " + e.toString());
+        } finally {
+            try {
+                if (rs != null) rs.close();
+                if (ps != null) ps.close();
+                if (con != null) con.close();
+            } catch (SQLException e) {
+                System.out.println(e.toString());
+            }
+        }
+        return lista;
+    }
+
+    // Registrar un ajuste por inventario físico (+/-) actualizando stock y kardex
+    public boolean registrarAjusteInventario(int idProducto, int idEmpleado, int nuevoStock, String motivo) {
+        String queryStock = "SELECT product_quantity FROM products WHERE id = ?";
+        String updateStock = "UPDATE products SET product_quantity = ? WHERE id = ?";
+        try {
+            con = cn.getConnection();
+            asegurarTiposMovimiento(con);
+
+            int stockAnterior = 0;
+            try (PreparedStatement psQ = con.prepareStatement(queryStock)) {
+                psQ.setInt(1, idProducto);
+                try (ResultSet rsQ = psQ.executeQuery()) {
+                    if (rsQ.next()) {
+                        stockAnterior = rsQ.getInt("product_quantity");
+                    }
+                }
+            }
+
+            int diferencia = nuevoStock - stockAnterior;
+            int cantidad = Math.abs(diferencia);
+            String efecto = (diferencia >= 0) ? "ENTRADA" : "SALIDA";
+
+            // 1. Actualizar el stock en la tabla products
+            try (PreparedStatement psU = con.prepareStatement(updateStock)) {
+                psU.setInt(1, nuevoStock);
+                psU.setInt(2, idProducto);
+                psU.executeUpdate();
+            }
+
+            // 2. Registrar el movimiento en Kardex con tipo 5 (AJUSTE INVENTARIO)
+            Kardex k = new Kardex();
+            k.setIdProducto(idProducto);
+            k.setIdTipoMov(5); // AJUSTE INVENTARIO
+            k.setIdEmpleado(idEmpleado);
+            k.setCantidad(cantidad);
+            k.setEfecto(efecto);
+            k.setSaldoAnterior(stockAnterior);
+            k.setSaldoResultante(nuevoStock);
+            k.setObservacion(motivo != null && !motivo.trim().isEmpty() ? motivo.trim() : "Ajuste por inventario físico");
+
+            return registrarMovimiento(k);
+
+        } catch (SQLException e) {
+            System.out.println("Error al registrar ajuste en Kardex: " + e.getMessage());
+            return false;
+        } finally {
+            try {
+                if (con != null) con.close();
+            } catch (SQLException ignored) {}
+        }
     }
 }

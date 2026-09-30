@@ -7,6 +7,8 @@ import Models.Products;
 import Models.ProductsDao;
 import Models.Suppliers;
 import Models.SuppliersDao;
+import Models.Kardex;
+import Models.KardexDao;
 import Views.SystemView;
 
 import javax.swing.JOptionPane;
@@ -250,7 +252,28 @@ public class PurchasesController implements ActionListener, MouseListener, KeyLi
                 purchaseDao.registerPurchaseDetailsQuery(purchaseId, productId, amount, price, subtotal);
 
                 ProductsDao prodDao = new ProductsDao();
+                Products prod = prodDao.searchCode(productId);
+                int stockAnterior = (prod != null) ? prod.getProduct_quantity() : 0;
+                int stockNuevo = stockAnterior + amount;
+
                 prodDao.updatePurchaseStockQuery(amount, productId);
+
+                // Registrar movimiento de ENTRADA en el Kardex
+                try {
+                    KardexDao kardexDao = new KardexDao();
+                    Kardex k = new Kardex();
+                    k.setIdProducto(productId);
+                    k.setIdTipoMov(2); // 2: COMPRA (ENTRADA)
+                    k.setIdEmpleado(purchase.getEmployee_id());
+                    k.setCantidad(amount);
+                    k.setEfecto("ENTRADA");
+                    k.setSaldoAnterior(stockAnterior);
+                    k.setSaldoResultante(stockNuevo);
+                    k.setObservacion("Compra a proveedor en Factura N° " + purchaseId);
+                    kardexDao.registrarMovimiento(k);
+                } catch (Exception ex) {
+                    System.out.println("Error al registrar compra en Kardex: " + ex.getMessage());
+                }
             }
 
             JOptionPane.showMessageDialog(views, "¡Compra registrada exitosamente!");
