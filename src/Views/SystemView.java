@@ -21,6 +21,7 @@ public class SystemView extends javax.swing.JFrame {
     public SystemView(Models.Employees loggedEmployee) {
         this.loggedEmployee = loggedEmployee;
         initComponents();
+        setupKardexModule();
         setupModernMenu();
         Menu.setName("Menu");       // proteger color del menú
         Cabecera.setName("Cabecera");  // proteger color del header
@@ -93,6 +94,11 @@ public class SystemView extends javax.swing.JFrame {
         Controllers.PurchasesController purchasesController =
                 new Controllers.PurchasesController(purchase, purchaseDao, this, loggedEmployee, productController);
 
+        // KARDEX CONTROLLER
+        Controllers.KardexController kardexController =
+                new Controllers.KardexController(kardexDao, this, loggedEmployee, productController, setting);
+        this.kardexController = kardexController;
+
         // REPORTES
         // ✅ CORREGIDO: ReportsController ahora también recibe productController,
         // loggedEmployee y employeeController para control de acceso y actualización de nómina.
@@ -100,13 +106,15 @@ public class SystemView extends javax.swing.JFrame {
                 new Controllers.ReportsController(this, productController, loggedEmployee, employeeController);
         employeeController.setReportsController(reportsController);
 
-        // Refrescar reportes al abrir la pestaña
+        // Refrescar reportes y kardex al abrir la pestaña
         jTabbedPane1.addChangeListener(e -> {
             int selected = jTabbedPane1.getSelectedIndex();
             if (selected == 6) {
                 reportsController.loadSales();
                 reportsController.loadPurchases();
                 reportsController.loadEmployeeSalaries();
+            } else if (selected == 9) {
+                kardexController.cargarTablaKardex();
             }
         });
 
@@ -189,7 +197,8 @@ public class SystemView extends javax.swing.JFrame {
         javax.swing.JTable[] allTables = {
             products_table, purchases_table, sales_table, custormers_table,
             employees_table, suppliers_table, categories_table,
-            table_all_purchases, table_all_sales, table_employee_salaries
+            table_all_purchases, table_all_sales, table_employee_salaries,
+            kardex_table
         };
         for (javax.swing.JTable table : allTables) {
             if (table != null && table.getTableHeader() != null) {
@@ -1352,7 +1361,12 @@ public class SystemView extends javax.swing.JFrame {
         });
 
         cmb_rol.setFont(new java.awt.Font("Tahoma", 1, 12)); // NOI18N
-        cmb_rol.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "Administrador", "Auxiliar" }));
+        cmb_rol.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] {
+            "Administrador",
+            "Jefe de Compras",
+            "Almacenista / Encargado de Bodega",
+            "Vendedor / Cajero"
+        }));
         cmb_rol.addActionListener(new java.awt.event.ActionListener() {
             public void actionPerformed(java.awt.event.ActionEvent evt) {
                 cmb_rolActionPerformed(evt);
@@ -2355,6 +2369,212 @@ public class SystemView extends javax.swing.JFrame {
     }
 
     /**
+     * Construye dinámicamente el módulo visual de Kardex y control de inventarios.
+     * Incluye tarjetas KPI, barra de filtrado y búsqueda, tabla detallada de auditoría
+     * y el botón para registrar ajustes físicos por diferencias en bodega.
+     */
+    private void setupKardexModule() {
+        // 1. Panel y etiqueta para la barra lateral (Menu)
+        jPanelKardex = new javax.swing.JPanel();
+        jLabelKardex = new javax.swing.JLabel("Kardex");
+        jLabelKardex.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        jLabelKardex.setForeground(new java.awt.Color(226, 232, 240));
+        try {
+            java.net.URL iconUrl = getClass().getResource("/Images/subcarpeta.png");
+            if (iconUrl != null) {
+                jLabelKardex.setIcon(new javax.swing.ImageIcon(iconUrl));
+            }
+        } catch (Exception ignored) {}
+
+        jPanelKardex.setLayout(new java.awt.BorderLayout(12, 0));
+        jPanelKardex.add(jLabelKardex, java.awt.BorderLayout.CENTER);
+        Menu.add(jPanelKardex, new org.netbeans.lib.awtextra.AbsoluteConstraints(10, 150, 180, 38));
+
+        // 2. Pestaña principal del Kardex
+        jPanelKardexTab = new javax.swing.JPanel(new java.awt.BorderLayout(0, 12));
+        jPanelKardexTab.setBackground(new java.awt.Color(248, 250, 252));
+        jPanelKardexTab.setBorder(javax.swing.BorderFactory.createEmptyBorder(14, 18, 14, 18));
+
+        // 2.1 Contenedor superior (Título + KPIs + Barra de herramientas)
+        javax.swing.JPanel pnlTop = new javax.swing.JPanel();
+        pnlTop.setOpaque(false);
+        pnlTop.setLayout(new javax.swing.BoxLayout(pnlTop, javax.swing.BoxLayout.Y_AXIS));
+
+        // Título descriptivo
+        javax.swing.JPanel pnlTitle = new javax.swing.JPanel(new java.awt.GridLayout(2, 1, 0, 2));
+        pnlTitle.setOpaque(false);
+        javax.swing.JLabel lblTitle = new javax.swing.JLabel("Control de Inventario y Movimientos de Mercancía (Kardex)");
+        lblTitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 17));
+        lblTitle.setForeground(new java.awt.Color(30, 41, 59));
+        javax.swing.JLabel lblSub = new javax.swing.JLabel("Auditoría permanente de entradas, salidas y ajustes físicos de existencias.");
+        lblSub.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        lblSub.setForeground(new java.awt.Color(100, 116, 139));
+        pnlTitle.add(lblTitle);
+        pnlTitle.add(lblSub);
+
+        // Tarjetas resumen KPIs (4 tarjetas)
+        javax.swing.JPanel pnlKpis = new javax.swing.JPanel(new java.awt.GridLayout(1, 4, 12, 0));
+        pnlKpis.setOpaque(false);
+        pnlKpis.setBorder(javax.swing.BorderFactory.createEmptyBorder(8, 0, 8, 0));
+
+        lbl_kardex_total_mov = new javax.swing.JLabel("0", javax.swing.SwingConstants.CENTER);
+        lbl_kardex_entradas  = new javax.swing.JLabel("0", javax.swing.SwingConstants.CENTER);
+        lbl_kardex_salidas   = new javax.swing.JLabel("0", javax.swing.SwingConstants.CENTER);
+        lbl_kardex_ajustes   = new javax.swing.JLabel("0", javax.swing.SwingConstants.CENTER);
+
+        pnlKpis.add(createKpiCard("Total Movimientos", lbl_kardex_total_mov, new java.awt.Color(79, 70, 229)));
+        pnlKpis.add(createKpiCard("Entradas (Compras/Dev.)", lbl_kardex_entradas, new java.awt.Color(22, 163, 74)));
+        pnlKpis.add(createKpiCard("Salidas (Ventas/Dev.)", lbl_kardex_salidas, new java.awt.Color(220, 38, 38)));
+        pnlKpis.add(createKpiCard("Ajustes de Bodega", lbl_kardex_ajustes, new java.awt.Color(217, 119, 6)));
+
+        // Barra de búsqueda y acciones
+        javax.swing.JPanel pnlToolbar = new javax.swing.JPanel(new java.awt.BorderLayout(10, 0));
+        pnlToolbar.setOpaque(false);
+
+        javax.swing.JPanel pnlLeftTools = new javax.swing.JPanel(new java.awt.FlowLayout(java.awt.FlowLayout.LEFT, 8, 0));
+        pnlLeftTools.setOpaque(false);
+
+        javax.swing.JLabel lblSearch = new javax.swing.JLabel("Buscar:");
+        lblSearch.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+
+        txt_search_kardex = new javax.swing.JTextField(14);
+        txt_search_kardex.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        txt_search_kardex.setToolTipText("Buscar por producto, código o motivo...");
+
+        javax.swing.JLabel lblTipo = new javax.swing.JLabel("Tipo:");
+        lblTipo.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+
+        cmb_filter_kardex = new javax.swing.JComboBox<>(new String[]{
+            "Todos los Movimientos",
+            "VENTA",
+            "COMPRA",
+            "DEVOLUCION CLIENTE",
+            "DEVOLUCION PROVEEDOR",
+            "AJUSTE INVENTARIO"
+        });
+        cmb_filter_kardex.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+
+        btn_refresh_kardex = new javax.swing.JButton("Refrescar");
+        btn_refresh_kardex.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        btn_refresh_kardex.setBackground(new java.awt.Color(241, 245, 249));
+        btn_refresh_kardex.setFocusPainted(false);
+
+        pnlLeftTools.add(lblSearch);
+        pnlLeftTools.add(txt_search_kardex);
+        pnlLeftTools.add(lblTipo);
+        pnlLeftTools.add(cmb_filter_kardex);
+        pnlLeftTools.add(btn_refresh_kardex);
+
+        btn_ajuste_inventario = new javax.swing.JButton("+ Ajuste por Inventario Físico");
+        btn_ajuste_inventario.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        btn_ajuste_inventario.setBackground(new java.awt.Color(79, 70, 229));
+        btn_ajuste_inventario.setForeground(java.awt.Color.WHITE);
+        btn_ajuste_inventario.setFocusPainted(false);
+        btn_ajuste_inventario.setToolTipText("Registrar auditoría o ajuste de existencias físicas en bodega");
+
+        pnlToolbar.add(pnlLeftTools, java.awt.BorderLayout.CENTER);
+        pnlToolbar.add(btn_ajuste_inventario, java.awt.BorderLayout.EAST);
+
+        pnlTop.add(pnlTitle);
+        pnlTop.add(javax.swing.Box.createVerticalStrut(6));
+        pnlTop.add(pnlKpis);
+        pnlTop.add(javax.swing.Box.createVerticalStrut(6));
+        pnlTop.add(pnlToolbar);
+
+        // 2.2 Tabla Kardex con modelo seguro no editable
+        String[] columnNames = {
+            "ID", "Fecha / Hora", "Código", "Producto", "Tipo Movimiento",
+            "Responsable", "Cant.", "Efecto", "Saldo Ant.", "Saldo Post.", "Observación / Justificación"
+        };
+        javax.swing.table.DefaultTableModel km = new javax.swing.table.DefaultTableModel(columnNames, 0) {
+            @Override
+            public boolean isCellEditable(int row, int column) {
+                return false;
+            }
+        };
+
+        kardex_table = new javax.swing.JTable(km);
+        kardex_table.setRowHeight(25);
+        kardex_table.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        kardex_table.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        kardex_table.getTableHeader().setReorderingAllowed(false);
+
+        if (kardex_table.getColumnModel().getColumnCount() >= 11) {
+            kardex_table.getColumnModel().getColumn(0).setPreferredWidth(45);
+            kardex_table.getColumnModel().getColumn(1).setPreferredWidth(125);
+            kardex_table.getColumnModel().getColumn(2).setPreferredWidth(65);
+            kardex_table.getColumnModel().getColumn(3).setPreferredWidth(140);
+            kardex_table.getColumnModel().getColumn(4).setPreferredWidth(130);
+            kardex_table.getColumnModel().getColumn(5).setPreferredWidth(110);
+            kardex_table.getColumnModel().getColumn(6).setPreferredWidth(50);
+            kardex_table.getColumnModel().getColumn(7).setPreferredWidth(75);
+            kardex_table.getColumnModel().getColumn(8).setPreferredWidth(70);
+            kardex_table.getColumnModel().getColumn(9).setPreferredWidth(70);
+            kardex_table.getColumnModel().getColumn(10).setPreferredWidth(170);
+        }
+
+        javax.swing.table.DefaultTableCellRenderer centerRenderer = new javax.swing.table.DefaultTableCellRenderer();
+        centerRenderer.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        kardex_table.getColumnModel().getColumn(0).setCellRenderer(centerRenderer);
+        kardex_table.getColumnModel().getColumn(1).setCellRenderer(centerRenderer);
+        kardex_table.getColumnModel().getColumn(2).setCellRenderer(centerRenderer);
+        kardex_table.getColumnModel().getColumn(6).setCellRenderer(centerRenderer);
+        kardex_table.getColumnModel().getColumn(8).setCellRenderer(centerRenderer);
+        kardex_table.getColumnModel().getColumn(9).setCellRenderer(centerRenderer);
+
+        javax.swing.table.DefaultTableCellRenderer efectoRenderer = new javax.swing.table.DefaultTableCellRenderer() {
+            @Override
+            public java.awt.Component getTableCellRendererComponent(
+                    javax.swing.JTable table, Object value, boolean isSelected, boolean hasFocus, int row, int column) {
+                java.awt.Component c = super.getTableCellRendererComponent(table, value, isSelected, hasFocus, row, column);
+                setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+                setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 11));
+                if (value != null) {
+                    String str = value.toString().toUpperCase();
+                    if (str.contains("ENTRADA")) {
+                        setForeground(new java.awt.Color(22, 163, 74));
+                    } else if (str.contains("SALIDA")) {
+                        setForeground(new java.awt.Color(220, 38, 38));
+                    } else {
+                        setForeground(new java.awt.Color(79, 70, 229));
+                    }
+                }
+                return c;
+            }
+        };
+        kardex_table.getColumnModel().getColumn(7).setCellRenderer(efectoRenderer);
+
+        javax.swing.JScrollPane scrollKardex = new javax.swing.JScrollPane(kardex_table);
+        scrollKardex.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)));
+
+        jPanelKardexTab.add(pnlTop, java.awt.BorderLayout.NORTH);
+        jPanelKardexTab.add(scrollKardex, java.awt.BorderLayout.CENTER);
+
+        // 3. Registrar como pestaña 9 en jTabbedPane1
+        jTabbedPane1.addTab("Kardex", jPanelKardexTab);
+    }
+
+    private javax.swing.JPanel createKpiCard(String title, javax.swing.JLabel lblValue, java.awt.Color accent) {
+        javax.swing.JPanel card = new javax.swing.JPanel(new java.awt.BorderLayout(0, 4));
+        card.setBackground(java.awt.Color.WHITE);
+        card.setBorder(javax.swing.BorderFactory.createCompoundBorder(
+            javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240), 1),
+            javax.swing.BorderFactory.createEmptyBorder(6, 10, 6, 10)
+        ));
+
+        javax.swing.JLabel lblTitle = new javax.swing.JLabel(title);
+        lblTitle.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 11));
+        lblTitle.setForeground(new java.awt.Color(100, 116, 139));
+
+        lblValue.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 17));
+        lblValue.setForeground(accent);
+
+        card.add(lblTitle, java.awt.BorderLayout.NORTH);
+        card.add(lblValue, java.awt.BorderLayout.CENTER);
+        return card;
+    }
+
+    /**
      * Moderniza el sidebar del menú con un diseño gamer oscuro, elegante y ordenado.
      * Uniforma el tamaño, alineación, iconos y espaciado de todos los botones de navegación.
      */
@@ -2377,20 +2597,20 @@ public class SystemView extends javax.swing.JFrame {
         // Cabecera con tono índigo/morado moderno más vibrante
         Cabecera.setBackground(new java.awt.Color(79, 70, 229)); // #4F46E5 Modern Indigo
 
-        // Arreglo ordenado de paneles y etiquetas del menú
+        // Arreglo ordenado de paneles y etiquetas del menú (10 módulos incluyendo Kardex)
         javax.swing.JPanel[] menuPanels = {
-            jPanelProducts, jPanelPurchases, jPanelSales, jPanelCustomers,
+            jPanelProducts, jPanelPurchases, jPanelSales, jPanelKardex, jPanelCustomers,
             jPanelEmployees, jPanelSupplimers, jPanelCategories, jPanelReports, jPanelSettings
         };
         javax.swing.JLabel[] menuLabels = {
-            jLabelProducts, jLabelPurchases, jLabelSales, jLabelCustomers,
+            jLabelProducts, jLabelPurchases, jLabelSales, jLabelKardex, jLabelCustomers,
             jLabelEmployees, jLabelSupplimers, jLabelCategories, jLabelReports, jLabelSettings
         };
 
-        // Uniformar dimensiones y posicionamiento (180x42 px, centrados a x=10)
-        int startY = 14;
-        int btnHeight = 42;
-        int gap = 10;
+        // Uniformar dimensiones y posicionamiento (180x38 px, centrados a x=10)
+        int startY = 12;
+        int btnHeight = 38;
+        int gap = 8;
         int btnWidth = 180;
         int btnX = 10;
 
@@ -2802,6 +3022,19 @@ public class SystemView extends javax.swing.JFrame {
     public javax.swing.JButton btn_edit_salary;
     public javax.swing.JLabel lbl_total_salaries;
     public javax.swing.JLabel lbl_count_salaries;
+    public javax.swing.JPanel jPanelKardex;
+    public javax.swing.JLabel jLabelKardex;
+    public javax.swing.JPanel jPanelKardexTab;
+    public javax.swing.JTable kardex_table;
+    public javax.swing.JTextField txt_search_kardex;
+    public javax.swing.JComboBox<String> cmb_filter_kardex;
+    public javax.swing.JButton btn_ajuste_inventario;
+    public javax.swing.JButton btn_refresh_kardex;
+    public javax.swing.JLabel lbl_kardex_total_mov;
+    public javax.swing.JLabel lbl_kardex_entradas;
+    public javax.swing.JLabel lbl_kardex_salidas;
+    public javax.swing.JLabel lbl_kardex_ajustes;
+    public Controllers.KardexController kardexController;
     public javax.swing.JTextField txt_id_profile;
     public javax.swing.JTextField txt_name_profile;
     public javax.swing.JPasswordField txt_password_modify;

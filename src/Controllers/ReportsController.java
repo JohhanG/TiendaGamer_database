@@ -194,8 +194,8 @@ public class ReportsController implements MouseListener {
     // =========================================
     public void modifySelectedEmployeeSalary() {
         // 1. Validar que el usuario actual sea Administrador
-        boolean isAdmin = loggedEmployee != null
-                && "administrador".equalsIgnoreCase(loggedEmployee.getRol());
+        boolean isAdmin = loggedEmployee != null && loggedEmployee.getRol() != null
+                && (loggedEmployee.getRol().toLowerCase().contains("admin") || loggedEmployee.getRol().toLowerCase().contains("gerente"));
 
         if (!isAdmin) {
             JOptionPane.showMessageDialog(

@@ -109,4 +109,22 @@ public class Kardex {
     public void setObservacion(String observacion) {
         this.observacion = observacion;
     }
+
+    // Campos auxiliares para visualización en tablas
+    private String productName;
+    private int productCode;
+    private String tipoMovNombre;
+    private String employeeName;
+
+    public String getProductName() { return productName; }
+    public void setProductName(String productName) { this.productName = productName; }
+
+    public int getProductCode() { return productCode; }
+    public void setProductCode(int productCode) { this.productCode = productCode; }
+
+    public String getTipoMovNombre() { return tipoMovNombre; }
+    public void setTipoMovNombre(String tipoMovNombre) { this.tipoMovNombre = tipoMovNombre; }
+
+    public String getEmployeeName() { return employeeName; }
+    public void setEmployeeName(String employeeName) { this.employeeName = employeeName; }
 }

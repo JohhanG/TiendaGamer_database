@@ -258,7 +258,22 @@ public class EmployeesController implements ActionListener, MouseListener, KeyLi
             
             String rol = getSafeValue(row, 6);
             if (!rol.isEmpty()) {
-                views.cmb_rol.setSelectedItem(rol);
+                if ("auxiliar".equalsIgnoreCase(rol)) {
+                    views.cmb_rol.setSelectedItem("Vendedor / Cajero");
+                } else {
+                    boolean found = false;
+                    for (int i = 0; i < views.cmb_rol.getItemCount(); i++) {
+                        String item = views.cmb_rol.getItemAt(i);
+                        if (item.equalsIgnoreCase(rol) || item.toLowerCase().contains(rol.toLowerCase()) || rol.toLowerCase().contains(item.toLowerCase())) {
+                            views.cmb_rol.setSelectedIndex(i);
+                            found = true;
+                            break;
+                        }
+                    }
+                    if (!found) {
+                        views.cmb_rol.setSelectedItem(rol);
+                    }
+                }
             }
 
             String salaryStr = getSafeValue(row, 7);

@@ -144,6 +144,18 @@ public class PurchasesDao {
 
         try {
             conn = cn.getConnection();
+
+            // 0. Obtener employee_id de la compra original para Kardex
+            int employeeId = EmployeesDao.id_user;
+            try (PreparedStatement pstEmp = conn.prepareStatement("SELECT employee_id FROM purchases WHERE id = ?")) {
+                pstEmp.setInt(1, purchaseId);
+                try (ResultSet rsEmp = pstEmp.executeQuery()) {
+                    if (rsEmp.next()) {
+                        int eId = rsEmp.getInt("employee_id");
+                        if (eId > 0) employeeId = eId;
+                    }
+                }
+            } catch (SQLException ignored) {}
             
             // 1. Cambiar estado de la compra a CANCELADA y guardar el motivo
             pst = conn.prepareStatement(updatePurchase);
@@ -166,6 +178,26 @@ public class PurchasesDao {
                 pstStock.setInt(2, productId);
                 pstStock.executeUpdate();
                 pstStock.close();
+
+                // 3. Registrar movimiento en Kardex (SALIDA por devolución a proveedor)
+                try {
+                    KardexDao kardexDao = new KardexDao();
+                    ProductsDao prodDao = new ProductsDao();
+                    Products prod = prodDao.searchCode(productId);
+                    int stockActual = (prod != null) ? prod.getProduct_quantity() : 0;
+                    int stockAnterior = stockActual + amount;
+
+                    Kardex k = new Kardex();
+                    k.setIdProducto(productId);
+                    k.setIdTipoMov(4); // 4: DEVOLUCION PROVEEDOR (SALIDA)
+                    k.setIdEmpleado(employeeId);
+                    k.setCantidad(amount);
+                    k.setEfecto("SALIDA");
+                    k.setSaldoAnterior(stockAnterior);
+                    k.setSaldoResultante(stockActual);
+                    k.setObservacion("Devolución Compra N° " + purchaseId + " - Motivo: " + motivo);
+                    kardexDao.registrarMovimiento(k);
+                } catch (Exception ignored) {}
             }
             rsDetails.close();
             pstDetails.close();

@@ -91,6 +91,13 @@ public class EmployeesDao {
         return employee;
     }
 
+    // Asegurar que la columna rol soporte los nombres de perfiles completos (VARCHAR(50))
+    private void asegurarColumnaRol(Connection con) {
+        try (java.sql.Statement st = con.createStatement()) {
+            st.executeUpdate("ALTER TABLE employees MODIFY COLUMN rol VARCHAR(50)");
+        } catch (SQLException ignored) {}
+    }
+
     // ✅ Registrar con MD5 y Sueldo
     public boolean registerEmployeeQuery(Employees employee) {
 
@@ -101,6 +108,7 @@ public class EmployeesDao {
 
         try {
             conn = cn.getConnection();
+            asegurarColumnaRol(conn);
             pst = conn.prepareStatement(query);
 
             pst.setInt(1, employee.getId());
@@ -178,6 +186,7 @@ public class EmployeesDao {
 
         try {
             conn = cn.getConnection();
+            asegurarColumnaRol(conn);
             pst = conn.prepareStatement(query);
             pst.setString(1, employee.getFull_name());
             pst.setString(2, employee.getUsername());
