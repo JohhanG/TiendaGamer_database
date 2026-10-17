@@ -15,6 +15,7 @@ public class ConnectionMySQL {
     private String database_name = "tiendagamer_database";
     private String user = "root";
     private String password = ""; // Contraseña por defecto para entornos estándar (XAMPP)
+    private String ssl = "false";
 
     public ConnectionMySQL() {
         loadConfiguration();
@@ -53,6 +54,12 @@ public class ConnectionMySQL {
             if (prop.getProperty("db.password") != null) {
                 password = prop.getProperty("db.password").trim();
             }
+            if (prop.getProperty("db.ssl") != null && !prop.getProperty("db.ssl").trim().isEmpty()) {
+                ssl = prop.getProperty("db.ssl").trim();
+            } else if (!"localhost".equalsIgnoreCase(host) && !"127.0.0.1".equals(host)) {
+                // Servidores en la nube (Aiven, Railway, etc.) requieren SSL
+                ssl = "true";
+            }
         } catch (Exception e) {
             System.err.println("Aviso: No se pudo leer db.properties, usando valores por defecto: " + e.getMessage());
         }
@@ -60,8 +67,10 @@ public class ConnectionMySQL {
 
     public Connection getConnection() {
         Connection conn = null;
-        String url = "jdbc:mysql://" + host + ":" + port + "/" + database_name 
-                + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+        String sslParams = "true".equalsIgnoreCase(ssl) 
+                ? "?useSSL=true&trustServerCertificate=true&serverTimezone=UTC&allowPublicKeyRetrieval=true"
+                : "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+        String url = "jdbc:mysql://" + host + ":" + port + "/" + database_name + sslParams;
         try {
             Class.forName("com.mysql.cj.jdbc.Driver");
             conn = DriverManager.getConnection(url, user, password);

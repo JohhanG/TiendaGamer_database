@@ -3,11 +3,27 @@
 # ==============================================================
 # INSTRUCCIONES:
 # 1. Copia o renombra este archivo como "db.properties" en la raíz del proyecto.
-# 2. Configura los parámetros de acuerdo a tu servidor MySQL local.
-#    (Si utilizas XAMPP con la configuración por defecto, la contraseña suele ser vacía).
+# 2. Configura los parámetros de acuerdo a tu servidor MySQL:
+#
+#    - Para XAMPP Local:
+#      db.host=localhost
+#      db.port=3306
+#      db.name=tiendagamer_database
+#      db.user=root
+#      db.password=
+#      db.ssl=false
+#
+#    - Para Base de Datos en la Nube (Aiven, Railway, etc.):
+#      db.host=mysql-xxxxxxxx-tiendagamer4.a.aivencloud.com
+#      db.port=20448
+#      db.name=defaultdb
+#      db.user=avnadmin
+#      db.password=TU_PASSWORD_AIVEN
+#      db.ssl=true
 # ==============================================================
 db.host=localhost
 db.port=3306
 db.name=tiendagamer_database
 db.user=root
 db.password=
+db.ssl=false

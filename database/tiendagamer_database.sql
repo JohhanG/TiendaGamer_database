@@ -199,8 +199,8 @@ CREATE TABLE `products` (
 ) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcado de datos para `products`
-INSERT INTO `products` VALUES (1, 5559, 'Portatil 32 ra', 'portatil gamer', 1000000.0, 30, NULL, '2026-05-11 17:28:16.0', 1, '2026-05-11 08:54:14.0', 'true');
-INSERT INTO `products` VALUES (2, 5668, 'pantalla', 'pantalla', 100000.0, 100, NULL, '2026-05-11 10:26:57.0', 4, '2026-05-11 10:26:57.0', 'true');
+INSERT INTO `products` VALUES (1, 5559, 'Portatil 32 ra', 'portatil gamer', 1000000.0, 30, NULL, '2026-05-11 17:28:16.0', 1, '2026-05-11 08:54:14.0', 1);
+INSERT INTO `products` VALUES (2, 5668, 'pantalla', 'pantalla', 100000.0, 100, NULL, '2026-05-11 10:26:57.0', 4, '2026-05-11 10:26:57.0', 1);
 
 -- --------------------------------------------------------
 -- Estructura de tabla para `purchase_details`
