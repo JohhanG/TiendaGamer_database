@@ -66,9 +66,6 @@ public class PurchasesController implements ActionListener, MouseListener, KeyLi
         this.views.btn_remove_purchase.addActionListener(this);
         this.views.btn_new_purchase.addActionListener(this);
         this.views.purchases_table.addMouseListener(this);
-
-        // Cargar proveedores en el combo
-        loadSuppliers();
     }
 
     @Override

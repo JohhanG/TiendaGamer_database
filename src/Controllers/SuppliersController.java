@@ -30,8 +30,6 @@ public class SuppliersController implements ActionListener, MouseListener, KeyLi
         views.btn_cancel_supplier.addActionListener(this);
         views.suppliers_table.addMouseListener(this);
         views.txt_search_supplier.addKeyListener(this);
-
-        listAllSuppliers();
     }
 
     @Override

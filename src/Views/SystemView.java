@@ -106,15 +106,64 @@ public class SystemView extends javax.swing.JFrame {
                 new Controllers.ReportsController(this, productController, loggedEmployee, employeeController);
         employeeController.setReportsController(reportsController);
 
-        // Refrescar reportes y kardex al abrir la pestaña
+        // Refrescar automáticamente al abrir cada pestaña
         jTabbedPane1.addChangeListener(e -> {
             int selected = jTabbedPane1.getSelectedIndex();
-            if (selected == 6) {
+            if (selected == Controllers.SettingsControllers.TAB_PRODUCTS) {
+                productController.refreshTable();
+            } else if (selected == Controllers.SettingsControllers.TAB_PURCHASES) {
+                purchasesController.loadSuppliers();
+            } else if (selected == Controllers.SettingsControllers.TAB_CUSTOMERS) {
+                customerController.refreshTable();
+            } else if (selected == Controllers.SettingsControllers.TAB_EMPLOYEES && setting.isAdmin()) {
+                employeeController.listAllEmployees();
+            } else if (selected == Controllers.SettingsControllers.TAB_SUPPLIERS) {
+                supplierController.listAllSuppliers();
+            } else if (selected == Controllers.SettingsControllers.TAB_CATEGORIES) {
+                categoryController.listAllCategories();
+            } else if (selected == Controllers.SettingsControllers.TAB_REPORTS) {
                 reportsController.loadSales();
                 reportsController.loadPurchases();
                 reportsController.loadEmployeeSalaries();
-            } else if (selected == 9) {
+            } else if (selected == Controllers.SettingsControllers.TAB_KARDEX) {
                 kardexController.cargarTablaKardex();
+            }
+        });
+
+        // ==============================================================
+        // CARGA AUTOMATIZADA EN SEGUNDO PLANO (LAZY & ASYNC PIPELINE)
+        // La ventana se abre de inmediato (0 ms) sin esperar consultas
+        // ==============================================================
+        java.util.concurrent.Executors.newSingleThreadExecutor().submit(() -> {
+            try {
+                // 1. Cargar con máxima prioridad lo que el usuario está viendo según su rol:
+                if (setting.isJefeCompras()) {
+                    purchasesController.loadSuppliers();
+                } else if (setting.isAlmacenista()) {
+                    kardexController.cargarTablaKardex();
+                } else if (setting.isVendedor()) {
+                    // Ventas está listo de inmediato
+                } else {
+                    // Administrador: ver productos y combo de categorías de inmediato
+                    productController.loadCategories();
+                    productController.refreshTable();
+                }
+
+                // 2. Cargar en cola silenciosa el resto de módulos para que ya estén listos cuando cambie de pestaña
+                categoryController.listAllCategories();
+                if (setting.isAdmin()) {
+                    employeeController.listAllEmployees();
+                    supplierController.listAllSuppliers();
+                }
+                customerController.refreshTable();
+                if (!setting.isJefeCompras()) {
+                    purchasesController.loadSuppliers();
+                }
+                if (!setting.isAlmacenista()) {
+                    kardexController.cargarTablaKardex();
+                }
+            } catch (Exception ex) {
+                System.err.println("Aviso en carga en segundo plano: " + ex.getMessage());
             }
         });
 

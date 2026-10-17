@@ -58,7 +58,6 @@ public class KardexController implements ActionListener, KeyListener {
         this.settingsController = settingsController;
 
         initEvents();
-        cargarTablaKardex();
     }
 
     private void initEvents() {

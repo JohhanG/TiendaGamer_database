@@ -34,8 +34,6 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
         this.views.btn_cancel_customer.addActionListener(this);
         this.views.custormers_table.addMouseListener(this);
         this.views.txt_search_customers.addKeyListener(this);
-
-        refreshTable();
     }
 
     @Override
@@ -176,7 +174,7 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
         return val != null ? val.toString().trim() : "";
     }
 
-    private void refreshTable() {
+    public void refreshTable() {
         model.setRowCount(0);
         listAllCustomers();
     }

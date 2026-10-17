@@ -31,8 +31,6 @@ public class EmployeesController implements ActionListener, MouseListener, KeyLi
         views.btn_cancel_employee.addActionListener(this);
         views.employees_table.addMouseListener(this);
         views.txt_search_employee.addKeyListener(this);
-
-        listAllEmployees();
     }
 
     public void setReportsController(ReportsController reportsController) {

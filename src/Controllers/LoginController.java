@@ -68,10 +68,10 @@ public class LoginController implements ActionListener {
                         "Inicio de sesión: " + username);
             }).start();
 
-            login.dispose();
             SystemView system = new SystemView(access);
             system.setLocationRelativeTo(null);
             system.setVisible(true);
+            login.dispose();
 
         } else {
             login.setCursor(java.awt.Cursor.getDefaultCursor());

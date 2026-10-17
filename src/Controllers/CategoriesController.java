@@ -31,9 +31,6 @@ public class CategoriesController implements ActionListener, KeyListener, MouseL
         views.btn_delete_category.addActionListener(this);
         views.categories_table.addMouseListener(this);
         views.txt_search_category.addKeyListener(this);
-
-        // Cargar al inicio
-        listAllCategories();
     }
 
     @Override

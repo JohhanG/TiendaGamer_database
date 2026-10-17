@@ -47,9 +47,6 @@ public class ProductsController implements ActionListener,
         views.products_table.addMouseListener(this);
         views.txt_search_product.addKeyListener(this);
         views.txt_product_code.addKeyListener(this);
-
-        loadCategories();
-        refreshTable();
     }
 
     // =====================================
