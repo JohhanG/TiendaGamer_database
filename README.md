@@ -229,15 +229,29 @@ cd TiendaGamer_database
 Para proteger tus contraseñas y facilitar la evaluación:
 1. En la raíz del proyecto encontrarás el archivo de ejemplo **`db.properties.example`**.
 2. Crea una copia de este archivo en la misma raíz y renómbralo a **`db.properties`**.
-3. Ajusta tus credenciales locales de MySQL:
+3. Ajusta tus credenciales según tu entorno:
+
+   **Modo Local (XAMPP / MariaDB / MySQL Local):**
    ```properties
    db.host=localhost
    db.port=3306
    db.name=tiendagamer_database
    db.user=root
    db.password=TU_PASSWORD_LOCAL
+   db.ssl=false
    ```
    > 💡 *Nota para evaluadores con XAMPP*: Si utilizas XAMPP con la configuración por defecto (usuario `root` y contraseña vacía), puedes dejar `db.password=` o incluso omitir el archivo; el sistema cuenta con detección automática de valores por defecto.
+
+   **Modo Nube Global (Aiven / Railway / Cloud MySQL):**
+   ```properties
+   db.host=mysql-xxxxxxxx-tiendagamer4.a.aivencloud.com
+   db.port=20448
+   db.name=defaultdb
+   db.user=avnadmin
+   db.password=TU_PASSWORD_AIVEN
+   db.ssl=true
+   ```
+   > 🔒 *Cifrado SSL Automático*: El sistema detecta hosts remotos y activa el cifrado seguro SSL/TLS con validación de certificados de forma automática.
 
 ### 4. Abrir y Ejecutar en NetBeans
 1. Abre **Apache NetBeans**.
