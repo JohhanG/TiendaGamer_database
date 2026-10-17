@@ -41,8 +41,15 @@ public class LoginController implements ActionListener {
             return;
         }
 
+        login.setCursor(java.awt.Cursor.getPredefinedCursor(java.awt.Cursor.WAIT_CURSOR));
+        login.btn_enter.setEnabled(false);
+        login.btn_enter.setText("Iniciando...");
+
         // ✅ Verificar si cuenta está bloqueada
         if (employeeDao.isAccountLocked(username)) {
+            login.setCursor(java.awt.Cursor.getDefaultCursor());
+            login.btn_enter.setEnabled(true);
+            login.btn_enter.setText("Ingresar");
             JOptionPane.showMessageDialog(null,
                     "Tu cuenta está bloqueada por demasiados intentos fallidos.\n"
                     + "Contacta al administrador.",
@@ -54,12 +61,12 @@ public class LoginController implements ActionListener {
         Employees access = employeeDao.loginQuery(username, password);
 
         if (access.getId() > 0) {
-            // ✅ Login exitoso — resetear intentos
-            employeeDao.resetFailedAttempts(username);
-
-            // ✅ Registrar actividad
-            employeeDao.logActivity(access.getId(),
-                    "Inicio de sesión: " + username);
+            // ✅ Login exitoso — resetear intentos y registrar actividad en background
+            new Thread(() -> {
+                employeeDao.resetFailedAttempts(username);
+                employeeDao.logActivity(access.getId(),
+                        "Inicio de sesión: " + username);
+            }).start();
 
             login.dispose();
             SystemView system = new SystemView(access);
@@ -67,6 +74,9 @@ public class LoginController implements ActionListener {
             system.setVisible(true);
 
         } else {
+            login.setCursor(java.awt.Cursor.getDefaultCursor());
+            login.btn_enter.setEnabled(true);
+            login.btn_enter.setText("Ingresar");
             // ✅ Login fallido — incrementar intentos
             employeeDao.incrementFailedAttempts(username);
             employeeDao.checkAndLockAccount(username);

@@ -65,20 +65,57 @@ public class ConnectionMySQL {
         }
     }
 
-    public Connection getConnection() {
-        Connection conn = null;
+    private static Connection sharedPhysicalConnection = null;
+    private static String lastConfigKey = "";
+
+    public synchronized Connection getConnection() {
         String sslParams = "true".equalsIgnoreCase(ssl) 
                 ? "?useSSL=true&trustServerCertificate=true&serverTimezone=UTC&allowPublicKeyRetrieval=true"
                 : "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
         String url = "jdbc:mysql://" + host + ":" + port + "/" + database_name + sslParams;
+        String currentConfigKey = url + "|" + user + "|" + password;
+
         try {
+            // Si cambiaron las credenciales o host, cerrar la anterior
+            if (!currentConfigKey.equals(lastConfigKey) && sharedPhysicalConnection != null) {
+                try { sharedPhysicalConnection.close(); } catch (Exception ignore) {}
+                sharedPhysicalConnection = null;
+            }
+
+            // Si la conexión física sigue activa y válida, reutilizarla inmediatamente (0 ms)
+            if (sharedPhysicalConnection != null && !sharedPhysicalConnection.isClosed() && sharedPhysicalConnection.isValid(2)) {
+                return wrapConnection(sharedPhysicalConnection);
+            }
+
+            // Crear nueva conexión física cuando no exista o haya expirado
             Class.forName("com.mysql.cj.jdbc.Driver");
-            conn = DriverManager.getConnection(url, user, password);
+            sharedPhysicalConnection = DriverManager.getConnection(url, user, password);
+            lastConfigKey = currentConfigKey;
+            return wrapConnection(sharedPhysicalConnection);
+
         } catch (ClassNotFoundException e) {
             System.err.println("Ha ocurrido un ClassNotFoundException: " + e.getMessage());
         } catch (SQLException e) {
             System.err.println("Ha ocurrido un SQLException al conectar a la base de datos (" + url + "): " + e.getMessage());
         }
-        return conn;
+        return null;
+    }
+
+    // Wrapper transparente: intercepta close() para no destruir el socket SSL hacia la nube
+    private Connection wrapConnection(final Connection physical) {
+        return (Connection) java.lang.reflect.Proxy.newProxyInstance(
+            Connection.class.getClassLoader(),
+            new Class<?>[]{Connection.class},
+            (proxy, method, args) -> {
+                if ("close".equals(method.getName())) {
+                    // Mantener el socket vivo para las siguientes consultas
+                    return null;
+                }
+                if ("isClosed".equals(method.getName())) {
+                    return physical.isClosed();
+                }
+                return method.invoke(physical, args);
+            }
+        );
     }
 }
