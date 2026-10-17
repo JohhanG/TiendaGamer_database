@@ -336,7 +336,7 @@ TiendaGamer/
 - [x] Interfaz gráfica estilizada en FlatLaf con soporte Modo Claro / Oscuro
 - [x] README y documentación técnica completa con diagramas de flujo
 - [ ] Diapositivas de exposición final
-- [ ] Manual de usuario final
+- [x] Manual de usuario final ([MANUAL_DE_USUARIO.md](MANUAL_DE_USUARIO.md))
 
 ---
 
