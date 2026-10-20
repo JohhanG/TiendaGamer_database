@@ -45,6 +45,23 @@ public class LoginController implements ActionListener {
         login.btn_enter.setEnabled(false);
         login.btn_enter.setText("Iniciando...");
 
+        // Verificar conexion con la base de datos antes de continuar
+        Models.ConnectionMySQL checkCn = new Models.ConnectionMySQL();
+        if (checkCn.getConnection() == null) {
+            login.setCursor(java.awt.Cursor.getDefaultCursor());
+            login.btn_enter.setEnabled(true);
+            login.btn_enter.setText("Ingresar");
+            JOptionPane.showMessageDialog(null,
+                    "No se pudo conectar a la base de datos.\n\n"
+                    + "- Si usas la nube (Aiven), el servicio suele suspenderse por inactividad.\n"
+                    + "  Ingresa a https://console.aiven.io/ y pulsa 'Power on' para activarlo.\n\n"
+                    + "- Si usas modo local (XAMPP), descomenta localhost en db.properties\n"
+                    + "  e inicia MySQL en el panel de XAMPP.",
+                    "Error de Conexion",
+                    JOptionPane.ERROR_MESSAGE);
+            return;
+        }
+
         // ✅ Verificar si cuenta está bloqueada
         if (employeeDao.isAccountLocked(username)) {
             login.setCursor(java.awt.Cursor.getDefaultCursor());

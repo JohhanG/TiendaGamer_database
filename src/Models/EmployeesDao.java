@@ -54,6 +54,7 @@ public class EmployeesDao {
 
         try {
             conn = cn.getConnection();
+            if (conn == null) { return employee; }
             pst = conn.prepareStatement(query);
             pst.setString(1, user);
             pst.setString(2, encryptedPassword); // ✅
@@ -108,6 +109,7 @@ public class EmployeesDao {
 
         try {
             conn = cn.getConnection();
+            if (conn == null) { return false; }
             asegurarColumnaRol(conn);
             pst = conn.prepareStatement(query);
 
@@ -143,6 +145,7 @@ public class EmployeesDao {
 
         try {
             conn = cn.getConnection();
+            if (conn == null) { return list_employees; }
 
             if (value.equalsIgnoreCase("")) {
                 pst = conn.prepareStatement(query);
@@ -186,6 +189,7 @@ public class EmployeesDao {
 
         try {
             conn = cn.getConnection();
+            if (conn == null) { return false; }
             asegurarColumnaRol(conn);
             pst = conn.prepareStatement(query);
             pst.setString(1, employee.getFull_name());
@@ -214,6 +218,7 @@ public class EmployeesDao {
         Timestamp dateTime = new Timestamp(new Date().getTime());
         try {
             conn = cn.getConnection();
+            if (conn == null) { return false; }
             pst = conn.prepareStatement(query);
             pst.setDouble(1, salary);
             pst.setTimestamp(2, dateTime);
@@ -236,6 +241,7 @@ public class EmployeesDao {
         String query = "SELECT SUM(salary) FROM employees";
         try {
             conn = cn.getConnection();
+            if (conn == null) { return total; }
             pst = conn.prepareStatement(query);
             rs = pst.executeQuery();
             if (rs.next()) {
@@ -256,6 +262,7 @@ public class EmployeesDao {
         String query = "DELETE FROM employees WHERE id = " + id;
         try {
             conn = cn.getConnection();
+            if (conn == null) { return false; }
             pst = conn.prepareStatement(query);
             pst.execute();
             return true;
@@ -273,6 +280,7 @@ public class EmployeesDao {
                 + username_user + "'";
         try {
             conn = cn.getConnection();
+            if (conn == null) { return false; }
             pst = conn.prepareStatement(query);
             pst.setString(1, encryptMD5(employee.getPassword())); // ✅
             pst.executeUpdate();
@@ -289,6 +297,7 @@ public boolean isAccountLocked(String username) {
     String query = "SELECT is_locked FROM employees WHERE username = ?";
     try {
         conn = cn.getConnection();
+            if (conn == null) { return false; }
         pst = conn.prepareStatement(query);
         pst.setString(1, username);
         rs = pst.executeQuery();
@@ -307,6 +316,7 @@ public void incrementFailedAttempts(String username) {
             + "WHERE username = ?";
     try {
         conn = cn.getConnection();
+            if (conn == null) { return; }
         pst = conn.prepareStatement(query);
         pst.setString(1, username);
         pst.executeUpdate();
@@ -320,6 +330,7 @@ public void checkAndLockAccount(String username) {
     String query = "SELECT failed_attempts FROM employees WHERE username = ?";
     try {
         conn = cn.getConnection();
+            if (conn == null) { return; }
         pst = conn.prepareStatement(query);
         pst.setString(1, username);
         rs = pst.executeQuery();
@@ -342,6 +353,7 @@ public void resetFailedAttempts(String username) {
     String query = "UPDATE employees SET failed_attempts = 0 WHERE username = ?";
     try {
         conn = cn.getConnection();
+            if (conn == null) { return; }
         pst = conn.prepareStatement(query);
         pst.setString(1, username);
         pst.executeUpdate();
@@ -355,6 +367,7 @@ public void logActivity(int employeeId, String action) {
     String query = "INSERT INTO activity_log(employee_id, action) VALUES(?, ?)";
     try {
         conn = cn.getConnection();
+            if (conn == null) { return; }
         pst = conn.prepareStatement(query);
         pst.setInt(1, employeeId);
         pst.setString(2, action);
