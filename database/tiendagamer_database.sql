@@ -390,3 +390,122 @@ INSERT INTO `tipos_movimiento` VALUES (4, 'DEVOLUCION PROVEEDOR', 'SALIDA');
 INSERT INTO `tipos_movimiento` VALUES (5, 'AJUSTE INVENTARIO', 'AJUSTE');
 
 SET FOREIGN_KEY_CHECKS = 1;
+
+-- ========================================================
+-- Vistas y Tablas de Compatibilidad con el MER Actualizado
+-- Secciones 1.5, 2.0 y 2.4 de la Documentacion Tecnica
+-- Modelo Unificado: TERCEROS, DOCUMENTOS_SOPORTE, DETALLE_DOCUMENTO
+-- ========================================================
+
+-- --------------------------------------------------------
+-- Estructura de tabla para `tipos_documento_soporte`
+-- --------------------------------------------------------
+DROP TABLE IF EXISTS `tipos_documento_soporte`;
+CREATE TABLE `tipos_documento_soporte` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(50) NOT NULL,
+  `descripcion` varchar(150) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=6 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO `tipos_documento_soporte` (`id`, `nombre`, `descripcion`) VALUES
+(1, 'FACTURA DE VENTA', 'Salida de mercancia por venta comercial en mostrador'),
+(2, 'ORDEN DE COMPRA', 'Entrada de mercancia adquirida a proveedor mayorista'),
+(3, 'DEVOLUCION DE CLIENTE', 'Reintegro de productos por anulacion de venta'),
+(4, 'DEVOLUCION A PROVEEDOR', 'Salida de productos por devolucion a proveedor'),
+(5, 'AJUSTE DE INVENTARIO', 'Regularizacion de descuadre tras conteo fisico de bodega')
+ON DUPLICATE KEY UPDATE `nombre` = VALUES(`nombre`);
+
+-- --------------------------------------------------------
+-- Estructura de tabla para `roles`
+-- --------------------------------------------------------
+DROP TABLE IF EXISTS `roles`;
+CREATE TABLE `roles` (
+  `id` int NOT NULL AUTO_INCREMENT,
+  `nombre` varchar(50) NOT NULL,
+  `descripcion` varchar(200) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+
+INSERT INTO `roles` (`id`, `nombre`, `descripcion`) VALUES
+(1, 'Administrador', 'Direccion estrategica, supervision integral y acceso total (RBAC)'),
+(2, 'Jefe de Compras', 'Gestion de proveedores, registro de compras y reportes de adquisicion'),
+(3, 'Almacenista', 'Custodia fisica de bodega, control de Kardex y ajustes de inventario'),
+(4, 'Vendedor / Cajero', 'Atencion en punto de venta, facturacion y consulta de existencias')
+ON DUPLICATE KEY UPDATE `nombre` = VALUES(`nombre`);
+
+-- --------------------------------------------------------
+-- Vista `terceros`: Unificacion de Clientes y Proveedores (MER 2.4)
+-- --------------------------------------------------------
+CREATE OR REPLACE VIEW `terceros` AS
+SELECT 
+    `id` AS `id`,
+    'CLIENTE' AS `tipo_tercero`,
+    `full_name` AS `nombre`,
+    `telephone` AS `telefono`,
+    `email` AS `correo`,
+    `address` AS `direccion`,
+    'Cali' AS `ciudad`,
+    DATE(`created`) AS `fecha_registro`
+FROM `customers`
+UNION ALL
+SELECT 
+    `id` AS `id`,
+    'PROVEEDOR' AS `tipo_tercero`,
+    `name` AS `nombre`,
+    `telephone` AS `telefono`,
+    `email` AS `correo`,
+    `address` AS `direccion`,
+    COALESCE(`city`, 'Cali') AS `ciudad`,
+    DATE(`created`) AS `fecha_registro`
+FROM `suppliers`;
+
+-- --------------------------------------------------------
+-- Vista `documentos_soporte`: Unificacion de Compras y Ventas (MER 2.4)
+-- --------------------------------------------------------
+CREATE OR REPLACE VIEW `documentos_soporte` AS
+SELECT 
+    `id` AS `id`,
+    1 AS `tipo_documento_id`,
+    'VENTA' AS `tipo_documento`,
+    `customer_id` AS `tercero_id`,
+    `employee_id` AS `empleado_id`,
+    `sale_date` AS `fecha`,
+    `total` AS `total`,
+    `estado` AS `estado`
+FROM `sales`
+UNION ALL
+SELECT 
+    `id` AS `id`,
+    2 AS `tipo_documento_id`,
+    'COMPRA' AS `tipo_documento`,
+    `supplier_id` AS `tercero_id`,
+    `employee_id` AS `empleado_id`,
+    `created` AS `fecha`,
+    `total` AS `total`,
+    `estado` AS `estado`
+FROM `purchases`;
+
+-- --------------------------------------------------------
+-- Vista `detalle_documento`: Unificacion de Detalles Transaccionales (MER 2.4)
+-- --------------------------------------------------------
+CREATE OR REPLACE VIEW `detalle_documento` AS
+SELECT 
+    `id` AS `id`,
+    `sale_id` AS `documento_id`,
+    1 AS `tipo_documento_id`,
+    `product_id` AS `producto_id`,
+    `sale_quantity` AS `cantidad`,
+    `sale_price` AS `precio_unitario`,
+    `sale_subtotal` AS `subtotal`
+FROM `sale_details`
+UNION ALL
+SELECT 
+    `id` AS `id`,
+    `purchase_id` AS `documento_id`,
+    2 AS `tipo_documento_id`,
+    `product_id` AS `producto_id`,
+    `purchase_amount` AS `cantidad`,
+    `purchase_price` AS `precio_unitario`,
+    `purchase_subtotal` AS `subtotal`
+FROM `purchase_details`;

@@ -19,7 +19,7 @@ public class ProductsController implements ActionListener,
     private Products product;
     private ProductsDao productsDao;
     private SystemView views;
-    private SettingsControllers settings; // ← NUEVO
+    private SettingsControllers settings; // â† NUEVO
 
     DefaultTableModel model;
 
@@ -27,12 +27,12 @@ public class ProductsController implements ActionListener,
             Products product,
             ProductsDao productsDao,
             SystemView views,
-            SettingsControllers settings) { // ← NUEVO parámetro
+            SettingsControllers settings) { // â† NUEVO parÃ¡metro
 
         this.product     = product;
         this.productsDao = productsDao;
         this.views       = views;
-        this.settings    = settings; // ← NUEVO
+        this.settings    = settings; // â† NUEVO
 
         model = (DefaultTableModel) views.products_table.getModel();
 
@@ -45,6 +45,7 @@ public class ProductsController implements ActionListener,
 
         // EVENTOS
         views.products_table.addMouseListener(this);
+        views.products_table.setDefaultRenderer(Object.class, new Models.Renderers());
         views.txt_search_product.addKeyListener(this);
         views.txt_product_code.addKeyListener(this);
     }
@@ -81,9 +82,9 @@ public class ProductsController implements ActionListener,
     // =====================================
     // REFRESH
     // =====================================
-    // ✅ CORREGIDO: antes era "private", ahora es "public" para poder
+    // âœ… CORREGIDO: antes era "private", ahora es "public" para poder
     // llamarlo desde PurchasesController (y SalesController si hiciera falta)
-    // y así refrescar el stock apenas se registre una compra/venta,
+    // y asÃ­ refrescar el stock apenas se registre una compra/venta,
     // sin tener que cerrar y volver a entrar al programa.
     public void refreshTable() {
         cleanTable();
@@ -117,7 +118,7 @@ public class ProductsController implements ActionListener,
     // REGISTRAR
     // =====================================
     private void registerProduct() {
-        if (noTienePermisos()) return; // ← BLOQUEO
+        if (noTienePermisos()) return; // â† BLOQUEO
 
         if (fieldsEmpty()) {
             JOptionPane.showMessageDialog(null, "Todos los campos son obligatorios");
@@ -145,7 +146,7 @@ public class ProductsController implements ActionListener,
     // MODIFICAR
     // =====================================
     private void updateProduct() {
-        if (noTienePermisos()) return; // ← BLOQUEO
+        if (noTienePermisos()) return; // â† BLOQUEO
 
         if (views.txt_product_id.getText().isEmpty()) {
             JOptionPane.showMessageDialog(null, "Primero debes seleccionar un producto");
@@ -176,7 +177,7 @@ public class ProductsController implements ActionListener,
     // DESACTIVAR
     // =====================================
     private void deleteProduct() {
-        if (noTienePermisos()) return; // ← BLOQUEO
+        if (noTienePermisos()) return; // â† BLOQUEO
 
         if (views.txt_product_id.getText().isEmpty()) {
             JOptionPane.showMessageDialog(null, "Selecciona un producto");
@@ -196,7 +197,7 @@ public class ProductsController implements ActionListener,
     // ACTIVAR
     // =====================================
     private void activateProduct() {
-        if (noTienePermisos()) return; // ← BLOQUEO
+        if (noTienePermisos()) return; // â† BLOQUEO
 
         if (views.txt_product_id.getText().isEmpty()) {
             JOptionPane.showMessageDialog(null, "Selecciona un producto");
@@ -268,7 +269,7 @@ public class ProductsController implements ActionListener,
     }
 
     // =====================================
-    // BUSCAR POR CÓDIGO (ENTER)
+    // BUSCAR POR CÃ“DIGO (ENTER)
     // =====================================
     @Override
     public void keyPressed(KeyEvent e) {

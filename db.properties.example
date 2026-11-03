@@ -1,29 +1,23 @@
 # ==============================================================
-# Plantilla de Conexión a Base de Datos MySQL - Tienda Gamer
+# PLANTILLA DE CONFIGURACIÓN DE BASE DE DATOS DUAL (TIENDA GAMER)
 # ==============================================================
-# INSTRUCCIONES:
-# 1. Copia o renombra este archivo como "db.properties" en la raíz del proyecto.
-# 2. Configura los parámetros de acuerdo a tu servidor MySQL:
-#
-#    - Para XAMPP Local:
-#      db.host=localhost
-#      db.port=3306
-#      db.name=tiendagamer_database
-#      db.user=root
-#      db.password=
-#      db.ssl=false
-#
-#    - Para Base de Datos en la Nube (Aiven, Railway, etc.):
-#      db.host=mysql-xxxxxxxx-tiendagamer4.a.aivencloud.com
-#      db.port=20448
-#      db.name=defaultdb
-#      db.user=avnadmin
-#      db.password=TU_PASSWORD_AIVEN
-#      db.ssl=true
+# Renombra este archivo como 'db.properties' en la raíz del proyecto.
 # ==============================================================
-db.host=localhost
-db.port=3306
-db.name=tiendagamer_database
-db.user=root
-db.password=
-db.ssl=false
+
+# --- 1. Conexión Principal (Nube / Web - Aiven / Railway / AWS) ---
+db.host=mysql-xxxx-tiendagamer.a.aivencloud.com
+db.port=20448
+db.name=defaultdb
+db.user=avnadmin
+db.password=TU_PASSWORD_NUBE
+db.ssl=true
+
+# --- 2. Conexión de Respaldo Automático (Localhost / XAMPP / MySQL) ---
+# Se activa automáticamente si la nube no está disponible
+db.fallback.enabled=true
+db.fallback.host=localhost
+db.fallback.port=3306
+db.fallback.name=tiendagamer_database
+db.fallback.user=root
+db.fallback.password=TU_PASSWORD_LOCAL
+db.fallback.ssl=false
