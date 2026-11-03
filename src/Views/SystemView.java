@@ -106,28 +106,55 @@ public class SystemView extends javax.swing.JFrame {
                 new Controllers.ReportsController(this, productController, loggedEmployee, employeeController);
         employeeController.setReportsController(reportsController);
 
-        // Refrescar automáticamente al abrir cada pestaña
+        // ==============================================================
+        // NAVEGACIÓN INSTANTÁNEA (0 ms lag) & REFRESCO ASÍNCRONO
+        // La pestaña cambia de inmediato sin congelar la interfaz gráfica
+        // ==============================================================
+        final java.util.concurrent.ExecutorService tabRefreshExecutor = java.util.concurrent.Executors.newSingleThreadExecutor(r -> {
+            Thread t = new Thread(r, "TabAsyncRefreshThread");
+            t.setDaemon(true);
+            return t;
+        });
+
+        final long[] lastTabRefreshTime = new long[15];
+
         jTabbedPane1.addChangeListener(e -> {
             int selected = jTabbedPane1.getSelectedIndex();
-            if (selected == Controllers.SettingsControllers.TAB_PRODUCTS) {
-                productController.refreshTable();
-            } else if (selected == Controllers.SettingsControllers.TAB_PURCHASES) {
-                purchasesController.loadSuppliers();
-            } else if (selected == Controllers.SettingsControllers.TAB_CUSTOMERS) {
-                customerController.refreshTable();
-            } else if (selected == Controllers.SettingsControllers.TAB_EMPLOYEES && setting.isAdmin()) {
-                employeeController.listAllEmployees();
-            } else if (selected == Controllers.SettingsControllers.TAB_SUPPLIERS) {
-                supplierController.listAllSuppliers();
-            } else if (selected == Controllers.SettingsControllers.TAB_CATEGORIES) {
-                categoryController.listAllCategories();
-            } else if (selected == Controllers.SettingsControllers.TAB_REPORTS) {
-                reportsController.loadSales();
-                reportsController.loadPurchases();
-                reportsController.loadEmployeeSalaries();
-            } else if (selected == Controllers.SettingsControllers.TAB_KARDEX) {
-                kardexController.cargarTablaKardex();
+            long now = System.currentTimeMillis();
+
+            // Si la pestaña ya fue actualizada en los últimos 3 segundos, no repetir consulta de red
+            int tabKey = Math.max(0, Math.min(selected, 14));
+            if (now - lastTabRefreshTime[tabKey] < 3000) {
+                return;
             }
+            lastTabRefreshTime[tabKey] = now;
+
+            // Ejecutar la actualización en segundo plano: NUNCA congela el hilo de la interfaz
+            tabRefreshExecutor.submit(() -> {
+                try {
+                    if (selected == Controllers.SettingsControllers.TAB_PRODUCTS) {
+                        productController.refreshTable();
+                    } else if (selected == Controllers.SettingsControllers.TAB_PURCHASES) {
+                        purchasesController.loadSuppliers();
+                    } else if (selected == Controllers.SettingsControllers.TAB_CUSTOMERS) {
+                        customerController.refreshTable();
+                    } else if (selected == Controllers.SettingsControllers.TAB_EMPLOYEES && setting.isAdmin()) {
+                        employeeController.listAllEmployees();
+                    } else if (selected == Controllers.SettingsControllers.TAB_SUPPLIERS) {
+                        supplierController.listAllSuppliers();
+                    } else if (selected == Controllers.SettingsControllers.TAB_CATEGORIES) {
+                        categoryController.listAllCategories();
+                    } else if (selected == Controllers.SettingsControllers.TAB_REPORTS) {
+                        reportsController.loadSales();
+                        reportsController.loadPurchases();
+                        reportsController.loadEmployeeSalaries();
+                    } else if (selected == Controllers.SettingsControllers.TAB_KARDEX) {
+                        kardexController.cargarTablaKardex();
+                    }
+                } catch (Exception ex) {
+                    System.err.println("Aviso en actualización asíncrona de pestaña: " + ex.getMessage());
+                }
+            });
         });
 
         // ==============================================================
