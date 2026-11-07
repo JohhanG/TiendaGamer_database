@@ -11,6 +11,7 @@ public class Products {
     private int category_id;
     private String category_name;
     private int status;
+    private String image; // Ruta o nombre del archivo de foto del producto
 
     public Products() {
     }
@@ -85,5 +86,13 @@ public class Products {
 
     public void setStatus(int status) {
         this.status = status;
+    }
+
+    public String getImage() {
+        return image;
+    }
+
+    public void setImage(String image) {
+        this.image = image;
     }
 }

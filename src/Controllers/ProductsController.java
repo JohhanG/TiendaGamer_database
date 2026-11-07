@@ -5,6 +5,7 @@ import Models.CategoriesDao;
 import Models.DynamicComboBox;
 import Models.Products;
 import Models.ProductsDao;
+import Views.ProductImageHelper;
 import Views.SystemView;
 
 import java.awt.event.*;
@@ -19,7 +20,8 @@ public class ProductsController implements ActionListener,
     private Products product;
     private ProductsDao productsDao;
     private SystemView views;
-    private SettingsControllers settings; // â† NUEVO
+    private SettingsControllers settings;
+    private String currentProductImage = null;
 
     DefaultTableModel model;
 
@@ -27,21 +29,37 @@ public class ProductsController implements ActionListener,
             Products product,
             ProductsDao productsDao,
             SystemView views,
-            SettingsControllers settings) { // â† NUEVO parÃ¡metro
+            SettingsControllers settings) {
 
         this.product     = product;
         this.productsDao = productsDao;
         this.views       = views;
-        this.settings    = settings; // â† NUEVO
+        this.settings    = settings;
 
         model = (DefaultTableModel) views.products_table.getModel();
 
-        // BOTONES
+        // BOTONES DEL CRUD
         views.btn_register_product.addActionListener(this);
         views.btn_update_product.addActionListener(this);
         views.btn_delete_product.addActionListener(this);
         views.btn_activate_product.addActionListener(this);
         views.btn_cancel_product.addActionListener(this);
+
+        // BOTONES DE FOTO DEL PRODUCTO
+        if (views.btn_upload_product_photo != null) {
+            views.btn_upload_product_photo.addActionListener(this);
+        }
+        if (views.btn_remove_product_photo != null) {
+            views.btn_remove_product_photo.addActionListener(this);
+        }
+        if (views.lbl_product_photo != null) {
+            views.lbl_product_photo.addMouseListener(new MouseAdapter() {
+                @Override
+                public void mouseClicked(MouseEvent e) {
+                    choosePhoto();
+                }
+            });
+        }
 
         // EVENTOS
         views.products_table.addMouseListener(this);
@@ -67,6 +85,24 @@ public class ProductsController implements ActionListener,
     }
 
     // =====================================
+    // GESTIÓN DE FOTO
+    // =====================================
+    private void choosePhoto() {
+        if (noTienePermisos()) return;
+        String codeOrId = views.txt_product_code.getText().trim();
+        if (codeOrId.isEmpty()) {
+            codeOrId = views.txt_product_id.getText().trim();
+        }
+        String saved = ProductImageHelper.chooseAndSaveProductImage(views, codeOrId);
+        if (saved != null) {
+            currentProductImage = saved;
+            if (views.lbl_product_photo != null) {
+                views.lbl_product_photo.setIcon(ProductImageHelper.getProductImage(currentProductImage, 125, 125));
+            }
+        }
+    }
+
+    // =====================================
     // CARGAR CATEGORIAS
     // =====================================
     public void loadCategories() {
@@ -82,10 +118,6 @@ public class ProductsController implements ActionListener,
     // =====================================
     // REFRESH
     // =====================================
-    // âœ… CORREGIDO: antes era "private", ahora es "public" para poder
-    // llamarlo desde PurchasesController (y SalesController si hiciera falta)
-    // y asÃ­ refrescar el stock apenas se registre una compra/venta,
-    // sin tener que cerrar y volver a entrar al programa.
     public void refreshTable() {
         cleanTable();
         listAllProducts();
@@ -112,13 +144,22 @@ public class ProductsController implements ActionListener,
         if (e.getSource() == views.btn_cancel_product) {
             cleanFields();
         }
+        if (views.btn_upload_product_photo != null && e.getSource() == views.btn_upload_product_photo) {
+            choosePhoto();
+        }
+        if (views.btn_remove_product_photo != null && e.getSource() == views.btn_remove_product_photo) {
+            currentProductImage = null;
+            if (views.lbl_product_photo != null) {
+                views.lbl_product_photo.setIcon(ProductImageHelper.getProductImage(null, 125, 125));
+            }
+        }
     }
 
     // =====================================
     // REGISTRAR
     // =====================================
     private void registerProduct() {
-        if (noTienePermisos()) return; // â† BLOQUEO
+        if (noTienePermisos()) return;
 
         if (fieldsEmpty()) {
             JOptionPane.showMessageDialog(null, "Todos los campos son obligatorios");
@@ -134,6 +175,7 @@ public class ProductsController implements ActionListener,
         product.setUnit_price(Double.parseDouble(views.txt_product_unit_price.getText().trim()));
         product.setProduct_quantity(0);
         product.setCategory_id(category.getId());
+        product.setImage(currentProductImage);
 
         if (productsDao.registerProductsQuery(product)) {
             JOptionPane.showMessageDialog(null, "Producto registrado correctamente");
@@ -146,7 +188,7 @@ public class ProductsController implements ActionListener,
     // MODIFICAR
     // =====================================
     private void updateProduct() {
-        if (noTienePermisos()) return; // â† BLOQUEO
+        if (noTienePermisos()) return;
 
         if (views.txt_product_id.getText().isEmpty()) {
             JOptionPane.showMessageDialog(null, "Primero debes seleccionar un producto");
@@ -165,6 +207,7 @@ public class ProductsController implements ActionListener,
         Products current = productsDao.searchProduct(product.getId());
         product.setProduct_quantity(current.getProduct_quantity());
         product.setCategory_id(category.getId());
+        product.setImage(currentProductImage);
 
         if (productsDao.updateProductQuery(product)) {
             JOptionPane.showMessageDialog(null, "Producto modificado correctamente");
@@ -177,7 +220,7 @@ public class ProductsController implements ActionListener,
     // DESACTIVAR
     // =====================================
     private void deleteProduct() {
-        if (noTienePermisos()) return; // â† BLOQUEO
+        if (noTienePermisos()) return;
 
         if (views.txt_product_id.getText().isEmpty()) {
             JOptionPane.showMessageDialog(null, "Selecciona un producto");
@@ -197,7 +240,7 @@ public class ProductsController implements ActionListener,
     // ACTIVAR
     // =====================================
     private void activateProduct() {
-        if (noTienePermisos()) return; // â† BLOQUEO
+        if (noTienePermisos()) return;
 
         if (views.txt_product_id.getText().isEmpty()) {
             JOptionPane.showMessageDialog(null, "Selecciona un producto");
@@ -265,11 +308,33 @@ public class ProductsController implements ActionListener,
                     break;
                 }
             }
+
+            // CARGAR FOTO DEL PRODUCTO SELECCIONADO
+            try {
+                int id = Integer.parseInt(views.txt_product_id.getText().trim());
+                Products found = productsDao.searchProduct(id);
+                if (found != null && found.getImage() != null && !found.getImage().trim().isEmpty()) {
+                    currentProductImage = found.getImage();
+                    if (views.lbl_product_photo != null) {
+                        views.lbl_product_photo.setIcon(ProductImageHelper.getProductImage(currentProductImage, 125, 125));
+                    }
+                } else {
+                    currentProductImage = null;
+                    if (views.lbl_product_photo != null) {
+                        views.lbl_product_photo.setIcon(ProductImageHelper.getProductImage(null, 125, 125));
+                    }
+                }
+            } catch (Exception ex) {
+                currentProductImage = null;
+                if (views.lbl_product_photo != null) {
+                    views.lbl_product_photo.setIcon(ProductImageHelper.getProductImage(null, 125, 125));
+                }
+            }
         }
     }
 
     // =====================================
-    // BUSCAR POR CÃ“DIGO (ENTER)
+    // BUSCAR POR CÓDIGO (ENTER)
     // =====================================
     @Override
     public void keyPressed(KeyEvent e) {
@@ -291,6 +356,18 @@ public class ProductsController implements ActionListener,
             views.txt_product_name.setText(found.getName());
             views.txt_product_description.setText(found.getDescription());
             views.txt_product_unit_price.setText(String.valueOf(found.getUnit_price()));
+
+            if (found.getImage() != null && !found.getImage().trim().isEmpty()) {
+                currentProductImage = found.getImage();
+                if (views.lbl_product_photo != null) {
+                    views.lbl_product_photo.setIcon(ProductImageHelper.getProductImage(currentProductImage, 125, 125));
+                }
+            } else {
+                currentProductImage = null;
+                if (views.lbl_product_photo != null) {
+                    views.lbl_product_photo.setIcon(ProductImageHelper.getProductImage(null, 125, 125));
+                }
+            }
         }
     }
 
@@ -315,6 +392,10 @@ public class ProductsController implements ActionListener,
         views.txt_product_unit_price.setText("");
         if (views.cmd_categories.getItemCount() > 0) {
             views.cmd_categories.setSelectedIndex(0);
+        }
+        currentProductImage = null;
+        if (views.lbl_product_photo != null) {
+            views.lbl_product_photo.setIcon(ProductImageHelper.getProductImage(null, 125, 125));
         }
     }
 

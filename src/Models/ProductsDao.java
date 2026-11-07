@@ -26,8 +26,8 @@ public class ProductsDao {
     // =========================
     public boolean registerProductsQuery(Products product) {
 
-        String sql = "INSERT INTO products(code, name, description, unit_price, product_quantity, category_id, status) "
-                   + "VALUES(?, ?, ?, ?, ?, ?, 1)";
+        String sql = "INSERT INTO products(code, name, description, unit_price, product_quantity, category_id, image, status) "
+                   + "VALUES(?, ?, ?, ?, ?, ?, ?, 1)";
 
         try {
             conn = cn.getConnection();
@@ -39,6 +39,7 @@ public class ProductsDao {
             pst.setDouble(4, product.getUnit_price());
             pst.setInt(5,    product.getProduct_quantity());
             pst.setInt(6,    product.getCategory_id());
+            pst.setString(7, product.getImage());
 
             pst.executeUpdate();
             return true;
@@ -57,7 +58,7 @@ public class ProductsDao {
     public boolean updateProductQuery(Products product) {
 
         String sql = "UPDATE products SET code = ?, name = ?, description = ?, unit_price = ?, "
-                   + "product_quantity = ?, category_id = ? WHERE id = ?";
+                   + "product_quantity = ?, category_id = ?, image = ? WHERE id = ?";
 
         try {
             conn = cn.getConnection();
@@ -69,7 +70,8 @@ public class ProductsDao {
             pst.setDouble(4, product.getUnit_price());
             pst.setInt(5,    product.getProduct_quantity());
             pst.setInt(6,    product.getCategory_id());
-            pst.setInt(7,    product.getId());
+            pst.setString(7, product.getImage());
+            pst.setInt(8,    product.getId());
 
             pst.executeUpdate();
             return true;
@@ -152,6 +154,7 @@ public class ProductsDao {
                 product.setUnit_price(rs.getDouble("unit_price"));
                 product.setProduct_quantity(rs.getInt("product_quantity"));
                 product.setCategory_id(rs.getInt("category_id"));
+                product.setImage(rs.getString("image"));
                 product.setStatus(rs.getInt("status"));
             }
 
@@ -190,6 +193,7 @@ public class ProductsDao {
                 product.setUnit_price(rs.getDouble("unit_price"));
                 product.setProduct_quantity(rs.getInt("product_quantity"));
                 product.setCategory_id(rs.getInt("category_id"));
+                product.setImage(rs.getString("image"));
                 product.setStatus(rs.getInt("status"));
             }
 
@@ -212,12 +216,11 @@ public class ProductsDao {
         List<Products> list = new ArrayList<>();
 
         String sql = "SELECT DISTINCT p.id, p.code, p.name, p.description, p.unit_price, "
-                   + "p.product_quantity, p.category_id, p.status, c.name AS category_name "
+                   + "p.product_quantity, p.category_id, p.image, p.status, c.name AS category_name "
                    + "FROM products p "
                    + "INNER JOIN categories c ON p.category_id = c.id "
                    + "WHERE (CAST(p.code AS CHAR) LIKE ? OR p.name LIKE ?) "
                    + "ORDER BY p.status DESC, p.id ASC";
-        //            ↑ sin filtro de status — DESC pone activos (1) primero, inactivos (0) abajo
 
         try {
             conn = cn.getConnection();
@@ -237,6 +240,7 @@ public class ProductsDao {
                 p.setUnit_price(rs.getDouble("unit_price"));
                 p.setProduct_quantity(rs.getInt("product_quantity"));
                 p.setCategory_id(rs.getInt("category_id"));
+                p.setImage(rs.getString("image"));
                 p.setCategory_name(rs.getString("category_name"));
                 p.setStatus(rs.getInt("status"));
                 list.add(p);

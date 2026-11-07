@@ -192,6 +192,7 @@ CREATE TABLE `products` (
   `category_id` int DEFAULT NULL,
   `created` timestamp NULL DEFAULT NULL,
   `status` tinyint(1) DEFAULT '1',
+  `image` varchar(255) DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `code_UNIQUE` (`code`),
   KEY `product_category_idx` (`category_id`),

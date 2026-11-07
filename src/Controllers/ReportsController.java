@@ -90,7 +90,7 @@ public class ReportsController implements MouseListener {
             views.table_all_sales.getTableHeader().setReorderingAllowed(false);
         }
 
-        salesModel.setRowCount(0);
+        salesModel.setRowCount(0); Views.SystemView.applyColumnWidths(views.table_all_sales, 100, 210, 200, 120, 160, 130);
 
         salesList = saleDao.listAllSalesQuery(); // ✅ ahora se guarda en el campo de la clase
 
@@ -118,7 +118,7 @@ public class ReportsController implements MouseListener {
             views.table_all_purchases.getTableHeader().setReorderingAllowed(false);
         }
 
-        purchasesModel.setRowCount(0);
+        purchasesModel.setRowCount(0); Views.SystemView.applyColumnWidths(views.table_all_purchases, 100, 260, 140, 160, 140);
 
         purchasesList = purchaseDao.listAllPurchasesQuery(); // ✅ ahora se guarda en el campo de la clase
 
@@ -147,7 +147,7 @@ public class ReportsController implements MouseListener {
             views.table_employee_salaries.getTableHeader().setReorderingAllowed(false);
         }
 
-        salariesModel.setRowCount(0);
+        salariesModel.setRowCount(0); Views.SystemView.applyColumnWidths(views.table_employee_salaries, 110, 180, 110, 100, 110, 180, 130);
 
         List<Employees> list = employeesDao.listEmployeesQuery("");
         double totalSalaries = 0.0;

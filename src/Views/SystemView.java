@@ -22,6 +22,8 @@ public class SystemView extends javax.swing.JFrame {
         this.loggedEmployee = loggedEmployee;
         initComponents();
         setupKardexModule();
+        setupProductPhotoPanel();
+        setupModernButtonsAndLayouts();
         setupModernMenu();
         Menu.setName("Menu");       // proteger color del menú
         Cabecera.setName("Cabecera");  // proteger color del header
@@ -45,6 +47,7 @@ public class SystemView extends javax.swing.JFrame {
         replaceModelWithSafeVersion(sales_table, "Estado");
         replaceModelWithSafeVersion(purchases_table, "Estado");
         disableTableColumnReordering();
+        setupModernTablesStyle();
 
         // MODELOS
         Models.Employees employee          = new Models.Employees();
@@ -2385,6 +2388,479 @@ public class SystemView extends javax.swing.JFrame {
      * Configura la presentación visual moderna de la cabecera:
      * avatar circular del empleado, tipografía del nombre y rol, y botón de salida estilizado.
      */
+    
+    /**
+     * Configura el panel lateral de visualizacion y subida de fotos para productos.
+     */
+        /**
+     * Aplica estilo moderno, bordes redondeados, cursor de mano y paleta gamer
+     * a un boton de accion.
+     */
+    public static void applyButtonStyle(javax.swing.JButton btn, String type) {
+        if (btn == null) return;
+        btn.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+        btn.setFocusPainted(false);
+        btn.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        btn.putClientProperty("JButton.buttonType", "roundRect");
+        btn.putClientProperty("JComponent.roundRect", true);
+
+        switch (type) {
+            case "PRIMARY":
+                btn.setBackground(new java.awt.Color(79, 70, 229));
+                btn.setForeground(java.awt.Color.WHITE);
+                break;
+            case "EDIT":
+                btn.setBackground(new java.awt.Color(2, 132, 199));
+                btn.setForeground(java.awt.Color.WHITE);
+                break;
+            case "DANGER":
+                btn.setBackground(new java.awt.Color(225, 29, 72));
+                btn.setForeground(java.awt.Color.WHITE);
+                break;
+            case "NEUTRAL":
+                btn.setBackground(new java.awt.Color(100, 116, 139));
+                btn.setForeground(java.awt.Color.WHITE);
+                break;
+            case "SUCCESS":
+                btn.setBackground(new java.awt.Color(16, 185, 129));
+                btn.setForeground(java.awt.Color.WHITE);
+                break;
+            case "PURPLE":
+                btn.setBackground(new java.awt.Color(124, 58, 237));
+                btn.setForeground(java.awt.Color.WHITE);
+                break;
+        }
+    }
+
+    /**
+     * Estandariza la alineacion, tamano uniforme (155x34) y estetica moderna
+     * de todos los paneles y botones en cada pestana del sistema.
+     */
+        /**
+     * Estandariza la alineacion, tamano uniforme (155x34) y estetica moderna
+     * de todos los paneles y botones en cada pestana del sistema.
+     */
+    private void setupModernButtonsAndLayouts() {
+        // --- 1. APLICAR ESTILO VISUAL A TODOS LOS BOTONES ---
+        applyButtonStyle(btn_register_product, "PRIMARY");
+        applyButtonStyle(btn_update_product, "EDIT");
+        applyButtonStyle(btn_delete_product, "DANGER");
+        applyButtonStyle(btn_cancel_product, "NEUTRAL");
+        applyButtonStyle(btn_activate_product, "SUCCESS");
+        applyButtonStyle(btn_upload_product_photo, "PURPLE");
+        applyButtonStyle(btn_remove_product_photo, "NEUTRAL");
+
+        applyButtonStyle(btn_add_product_to_buy, "PRIMARY");
+        applyButtonStyle(btn_confirm_purchase, "SUCCESS");
+        applyButtonStyle(btn_remove_purchase, "DANGER");
+        applyButtonStyle(btn_new_purchase, "NEUTRAL");
+
+        applyButtonStyle(btn_add_product_sale, "PRIMARY");
+        applyButtonStyle(btn_confirm_sale, "SUCCESS");
+        applyButtonStyle(btn_remove_sale, "DANGER");
+        applyButtonStyle(btn_new_sale, "NEUTRAL");
+
+        applyButtonStyle(btn_register_customer, "PRIMARY");
+        applyButtonStyle(btn_update_customer, "EDIT");
+        applyButtonStyle(btn_delete_customer, "DANGER");
+        applyButtonStyle(btn_cancel_customer, "NEUTRAL");
+
+        applyButtonStyle(btn_register_employee, "PRIMARY");
+        applyButtonStyle(btn_update_employee, "EDIT");
+        applyButtonStyle(btn_delete_employee, "DANGER");
+        applyButtonStyle(btn_cancel_employee, "NEUTRAL");
+
+        applyButtonStyle(btn_register_supplier, "PRIMARY");
+        applyButtonStyle(btn_update_supplier, "EDIT");
+        applyButtonStyle(btn_delete_supplier, "DANGER");
+        applyButtonStyle(btn_cancel_supplier, "NEUTRAL");
+
+        applyButtonStyle(btn_register_category, "PRIMARY");
+        applyButtonStyle(btn_update_category, "EDIT");
+        applyButtonStyle(btn_delete_category, "DANGER");
+
+        applyButtonStyle(btn_modify_data, "EDIT");
+        applyButtonStyle(btn_refresh_kardex, "EDIT");
+        applyButtonStyle(btn_ajuste_inventario, "PRIMARY");
+        applyButtonStyle(btn_edit_salary, "EDIT");
+
+        // --- 2. RECONFIGURAR COMPRAS (jPanel4) ---
+        jPanel4.removeAll();
+        jPanel4.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jPanel4.add(jLabel10, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 25, 155, 30));
+        jPanel4.add(txt_purchase_product_code, new org.netbeans.lib.awtextra.AbsoluteConstraints(175, 25, 145, 30));
+
+        jPanel4.add(jLabel11, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 70, 155, 30));
+        jPanel4.add(txt_purchase_product_name, new org.netbeans.lib.awtextra.AbsoluteConstraints(175, 70, 145, 30));
+
+        jPanel4.add(jLabel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 115, 155, 30));
+        jPanel4.add(txt_purchase_amount, new org.netbeans.lib.awtextra.AbsoluteConstraints(175, 115, 145, 30));
+
+        jPanel4.add(jLabel13, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 160, 155, 30));
+        jPanel4.add(cmb_purchase_supplier, new org.netbeans.lib.awtextra.AbsoluteConstraints(175, 160, 145, 30));
+
+        jPanel4.add(jLabel14, new org.netbeans.lib.awtextra.AbsoluteConstraints(335, 25, 135, 30));
+        jPanel4.add(txt_purchase_price, new org.netbeans.lib.awtextra.AbsoluteConstraints(475, 25, 150, 30));
+
+        jPanel4.add(jLabel15, new org.netbeans.lib.awtextra.AbsoluteConstraints(335, 70, 135, 30));
+        jPanel4.add(txt_purchase_subtotal, new org.netbeans.lib.awtextra.AbsoluteConstraints(475, 70, 150, 30));
+
+        jPanel4.add(jLabel16, new org.netbeans.lib.awtextra.AbsoluteConstraints(335, 115, 135, 30));
+        jPanel4.add(txt_purchase_id, new org.netbeans.lib.awtextra.AbsoluteConstraints(475, 115, 150, 30));
+
+        jPanel4.add(jLabel17, new org.netbeans.lib.awtextra.AbsoluteConstraints(335, 160, 135, 30));
+        jPanel4.add(txt_purchase_total_to_pay, new org.netbeans.lib.awtextra.AbsoluteConstraints(475, 160, 150, 30));
+
+        jPanel4.add(btn_add_product_to_buy, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 25, 155, 34));
+        jPanel4.add(btn_confirm_purchase, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 70, 155, 34));
+        jPanel4.add(btn_remove_purchase, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 115, 155, 34));
+        jPanel4.add(btn_new_purchase, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 160, 155, 34));
+
+        if (jPanel5.getLayout() instanceof org.netbeans.lib.awtextra.AbsoluteLayout) {
+            org.netbeans.lib.awtextra.AbsoluteLayout abs5 = (org.netbeans.lib.awtextra.AbsoluteLayout) jPanel5.getLayout();
+            abs5.addLayoutComponent(jPanel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 15, 960, 220));
+            abs5.addLayoutComponent(jScrollPane1, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 255, 960, 290));
+        }
+
+        // --- 3. RECONFIGURAR VENTAS (jPanel17) ---
+        jPanel17.removeAll();
+        jPanel17.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jPanel17.add(jLabel52, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 20, 155, 30));
+        jPanel17.add(txt_sale_product_code, new org.netbeans.lib.awtextra.AbsoluteConstraints(175, 20, 145, 30));
+
+        jPanel17.add(jLabel53, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 60, 155, 30));
+        jPanel17.add(txt_sale_product_name, new org.netbeans.lib.awtextra.AbsoluteConstraints(175, 60, 145, 30));
+
+        jPanel17.add(jLabel54, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 100, 155, 30));
+        jPanel17.add(txt_sale_quantity, new org.netbeans.lib.awtextra.AbsoluteConstraints(175, 100, 145, 30));
+
+        jPanel17.add(jLabel55, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 140, 155, 30));
+        jPanel17.add(txt_sale_customer_id, new org.netbeans.lib.awtextra.AbsoluteConstraints(175, 140, 145, 30));
+
+        jPanel17.add(jLabel56, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 180, 155, 30));
+        jPanel17.add(txt_sale_total_to_pay, new org.netbeans.lib.awtextra.AbsoluteConstraints(175, 180, 145, 30));
+
+        jPanel17.add(jLabel57, new org.netbeans.lib.awtextra.AbsoluteConstraints(335, 20, 135, 30));
+        jPanel17.add(txt_sale_product_id, new org.netbeans.lib.awtextra.AbsoluteConstraints(475, 20, 150, 30));
+
+        jPanel17.add(jLabel58, new org.netbeans.lib.awtextra.AbsoluteConstraints(335, 60, 135, 30));
+        jPanel17.add(txt_sale_price, new org.netbeans.lib.awtextra.AbsoluteConstraints(475, 60, 150, 30));
+
+        jPanel17.add(jLabel59, new org.netbeans.lib.awtextra.AbsoluteConstraints(335, 100, 135, 30));
+        jPanel17.add(txt_sale_subtotal, new org.netbeans.lib.awtextra.AbsoluteConstraints(475, 100, 150, 30));
+
+        jPanel17.add(jLabel60, new org.netbeans.lib.awtextra.AbsoluteConstraints(335, 140, 135, 30));
+        jPanel17.add(txt_sale_stock, new org.netbeans.lib.awtextra.AbsoluteConstraints(475, 140, 150, 30));
+
+        jPanel17.add(jLabel61, new org.netbeans.lib.awtextra.AbsoluteConstraints(335, 180, 135, 30));
+        jPanel17.add(txt_sale_customer_name, new org.netbeans.lib.awtextra.AbsoluteConstraints(475, 180, 150, 30));
+
+        jPanel17.add(btn_add_product_sale, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 25, 155, 34));
+        jPanel17.add(btn_confirm_sale, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 75, 155, 34));
+        jPanel17.add(btn_remove_sale, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 125, 155, 34));
+        jPanel17.add(btn_new_sale, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 175, 155, 34));
+
+        if (jPanel16.getLayout() instanceof org.netbeans.lib.awtextra.AbsoluteLayout) {
+            org.netbeans.lib.awtextra.AbsoluteLayout abs16 = (org.netbeans.lib.awtextra.AbsoluteLayout) jPanel16.getLayout();
+            abs16.addLayoutComponent(jPanel17, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 15, 960, 230));
+            abs16.addLayoutComponent(jScrollPane10, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 260, 960, 285));
+        }
+
+        // --- 4. RECONFIGURAR CLIENTES (jPanel10) ---
+        jPanel10.removeAll();
+        jPanel10.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jPanel10.add(jLabel18, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 30, 140, 30));
+        jPanel10.add(txt_customer_id, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 30, 140, 30));
+
+        jPanel10.add(jLabel19, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 80, 140, 30));
+        jPanel10.add(txt_customer_fullname, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 80, 140, 30));
+
+        jPanel10.add(jLabel20, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 130, 140, 30));
+        jPanel10.add(txt_customer_address, new org.netbeans.lib.awtextra.AbsoluteConstraints(160, 130, 140, 30));
+
+        jPanel10.add(jLabel21, new org.netbeans.lib.awtextra.AbsoluteConstraints(320, 30, 95, 30));
+        jPanel10.add(txt_customer_telephone, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 30, 165, 30));
+
+        jPanel10.add(jLabel22, new org.netbeans.lib.awtextra.AbsoluteConstraints(320, 80, 95, 30));
+        jPanel10.add(txt_customer_email, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 80, 165, 30));
+
+        jPanel10.add(btn_register_customer, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 20, 155, 34));
+        jPanel10.add(btn_update_customer, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 65, 155, 34));
+        jPanel10.add(btn_delete_customer, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 110, 155, 34));
+        jPanel10.add(btn_cancel_customer, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 155, 155, 34));
+
+        if (jPanel6.getLayout() instanceof org.netbeans.lib.awtextra.AbsoluteLayout) {
+            org.netbeans.lib.awtextra.AbsoluteLayout abs6 = (org.netbeans.lib.awtextra.AbsoluteLayout) jPanel6.getLayout();
+            abs6.addLayoutComponent(jPanel10, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 15, 960, 210));
+            abs6.addLayoutComponent(jLabel23, new org.netbeans.lib.awtextra.AbsoluteConstraints(25, 242, -1, -1));
+            abs6.addLayoutComponent(txt_search_customers, new org.netbeans.lib.awtextra.AbsoluteConstraints(90, 237, 240, 30));
+            abs6.addLayoutComponent(jScrollPane4, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 280, 960, 270));
+        }
+
+        // --- 5. RECONFIGURAR EMPLEADOS (jPanel7) ---
+        jPanel7.removeAll();
+        jPanel7.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jPanel7.add(jLabel24, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 25, 145, 30));
+        jPanel7.add(txt_employee_id, new org.netbeans.lib.awtextra.AbsoluteConstraints(165, 25, 135, 30));
+
+        jPanel7.add(jLabel25, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 70, 145, 30));
+        jPanel7.add(txt_employee_fullname, new org.netbeans.lib.awtextra.AbsoluteConstraints(165, 70, 135, 30));
+
+        jPanel7.add(jLabel26, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 115, 145, 30));
+        jPanel7.add(txt_employee_username, new org.netbeans.lib.awtextra.AbsoluteConstraints(165, 115, 135, 30));
+
+        jPanel7.add(jLabel27, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 160, 145, 30));
+        jPanel7.add(cmb_rol, new org.netbeans.lib.awtextra.AbsoluteConstraints(165, 160, 135, 30));
+
+        jPanel7.add(jLabel28, new org.netbeans.lib.awtextra.AbsoluteConstraints(320, 25, 95, 30));
+        jPanel7.add(txt_employee_address, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 25, 165, 30));
+
+        jPanel7.add(jLabel29, new org.netbeans.lib.awtextra.AbsoluteConstraints(320, 70, 95, 30));
+        jPanel7.add(txt_employee_telephone, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 70, 165, 30));
+
+        jPanel7.add(jLabel30, new org.netbeans.lib.awtextra.AbsoluteConstraints(320, 115, 95, 30));
+        jPanel7.add(txt_employee_email, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 115, 165, 30));
+
+        jPanel7.add(jLabel31, new org.netbeans.lib.awtextra.AbsoluteConstraints(320, 160, 95, 30));
+        jPanel7.add(txt_employee_salary, new org.netbeans.lib.awtextra.AbsoluteConstraints(420, 160, 165, 30));
+
+        jPanel7.add(btn_register_employee, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 20, 155, 34));
+        jPanel7.add(btn_update_employee, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 65, 155, 34));
+        jPanel7.add(btn_delete_employee, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 110, 155, 34));
+        jPanel7.add(btn_cancel_employee, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 155, 155, 34));
+
+        if (jPanel1.getLayout() instanceof org.netbeans.lib.awtextra.AbsoluteLayout) {
+            org.netbeans.lib.awtextra.AbsoluteLayout abs1 = (org.netbeans.lib.awtextra.AbsoluteLayout) jPanel1.getLayout();
+            abs1.addLayoutComponent(jPanel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 15, 960, 215));
+            abs1.addLayoutComponent(jLabel32, new org.netbeans.lib.awtextra.AbsoluteConstraints(25, 245, -1, -1));
+            abs1.addLayoutComponent(txt_search_employee, new org.netbeans.lib.awtextra.AbsoluteConstraints(90, 240, 240, 30));
+            abs1.addLayoutComponent(jScrollPane5, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 285, 960, 265));
+        }
+
+        // --- 6. RECONFIGURAR PROVEEDORES (jPanel8) ---
+        jPanel8.removeAll();
+        jPanel8.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jPanel8.add(jLabel33, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 25, 95, 30));
+        jPanel8.add(txt_supplier_name, new org.netbeans.lib.awtextra.AbsoluteConstraints(115, 25, 165, 30));
+
+        jPanel8.add(jLabel34, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 70, 95, 30));
+        jPanel8.add(txt_supplier_addres, new org.netbeans.lib.awtextra.AbsoluteConstraints(115, 70, 165, 30));
+
+        jPanel8.add(jLabel35, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 115, 95, 30));
+        jPanel8.add(txt_supplier_telephone, new org.netbeans.lib.awtextra.AbsoluteConstraints(115, 115, 165, 30));
+
+        jPanel8.add(jLabel36, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 160, 95, 30));
+        jPanel8.add(txt_supplier_email, new org.netbeans.lib.awtextra.AbsoluteConstraints(115, 160, 165, 30));
+
+        jPanel8.add(jLabel37, new org.netbeans.lib.awtextra.AbsoluteConstraints(300, 25, 105, 30));
+        jPanel8.add(txt_supplier_description, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 25, 165, 30));
+
+        jPanel8.add(jLabel38, new org.netbeans.lib.awtextra.AbsoluteConstraints(300, 70, 105, 30));
+        jPanel8.add(cmb_supplier_city, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 70, 165, 30));
+
+        jPanel8.add(jLabel39, new org.netbeans.lib.awtextra.AbsoluteConstraints(300, 115, 105, 30));
+        jPanel8.add(txt_supplier_id, new org.netbeans.lib.awtextra.AbsoluteConstraints(410, 115, 165, 30));
+
+        jPanel8.add(btn_register_supplier, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 20, 155, 34));
+        jPanel8.add(btn_update_supplier, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 65, 155, 34));
+        jPanel8.add(btn_delete_supplier, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 110, 155, 34));
+        jPanel8.add(btn_cancel_supplier, new org.netbeans.lib.awtextra.AbsoluteConstraints(765, 155, 155, 34));
+
+        if (jPanel2.getLayout() instanceof org.netbeans.lib.awtextra.AbsoluteLayout) {
+            org.netbeans.lib.awtextra.AbsoluteLayout abs2 = (org.netbeans.lib.awtextra.AbsoluteLayout) jPanel2.getLayout();
+            abs2.addLayoutComponent(jPanel8, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 15, 960, 215));
+            abs2.addLayoutComponent(jLabel40, new org.netbeans.lib.awtextra.AbsoluteConstraints(25, 245, -1, -1));
+            abs2.addLayoutComponent(txt_search_supplier, new org.netbeans.lib.awtextra.AbsoluteConstraints(90, 240, 240, 30));
+            abs2.addLayoutComponent(jScrollPane6, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 285, 960, 265));
+        }
+
+        // --- 7. RECONFIGURAR CATEGORIAS (jPanel12) ---
+        jPanel12.removeAll();
+        jPanel12.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+
+        jPanel12.add(jLabel41, new org.netbeans.lib.awtextra.AbsoluteConstraints(25, 40, 70, 30));
+        jPanel12.add(txt_category_id, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 40, 180, 30));
+
+        jPanel12.add(jLabel42, new org.netbeans.lib.awtextra.AbsoluteConstraints(25, 100, 70, 30));
+        jPanel12.add(txt_category_name, new org.netbeans.lib.awtextra.AbsoluteConstraints(100, 100, 180, 30));
+
+        jPanel12.add(btn_register_category, new org.netbeans.lib.awtextra.AbsoluteConstraints(315, 35, 155, 34));
+        jPanel12.add(btn_update_category, new org.netbeans.lib.awtextra.AbsoluteConstraints(315, 80, 155, 34));
+        jPanel12.add(btn_delete_category, new org.netbeans.lib.awtextra.AbsoluteConstraints(315, 125, 155, 34));
+
+        if (jPanel11.getLayout() instanceof org.netbeans.lib.awtextra.AbsoluteLayout) {
+            org.netbeans.lib.awtextra.AbsoluteLayout abs11 = (org.netbeans.lib.awtextra.AbsoluteLayout) jPanel11.getLayout();
+            abs11.addLayoutComponent(jPanel12, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 15, 500, 230));
+            abs11.addLayoutComponent(jLabel43, new org.netbeans.lib.awtextra.AbsoluteConstraints(550, 20, -1, -1));
+            abs11.addLayoutComponent(txt_search_category, new org.netbeans.lib.awtextra.AbsoluteConstraints(615, 15, 360, 30));
+            abs11.addLayoutComponent(jScrollPane7, new org.netbeans.lib.awtextra.AbsoluteConstraints(550, 55, 430, 490));
+        }
+
+        // Refrescar
+        jPanel4.revalidate(); jPanel4.repaint();
+        jPanel17.revalidate(); jPanel17.repaint();
+        jPanel10.revalidate(); jPanel10.repaint();
+        jPanel7.revalidate(); jPanel7.repaint();
+        jPanel8.revalidate(); jPanel8.repaint();
+        jPanel12.revalidate(); jPanel12.repaint();
+    }
+
+    private void setupProductPhotoPanel() {
+        // Reconfigurar jPanel3 a layout absoluto completo
+        jPanel3.removeAll();
+        jPanel3.setLayout(new org.netbeans.lib.awtextra.AbsoluteLayout());
+        jPanel3.add(jPanel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 15, 960, 255));
+        jPanel3.add(jLabel9, new org.netbeans.lib.awtextra.AbsoluteConstraints(25, 282, -1, -1));
+        jPanel3.add(txt_search_product, new org.netbeans.lib.awtextra.AbsoluteConstraints(90, 277, 240, 30));
+        jPanel3.add(jScrollPane2, new org.netbeans.lib.awtextra.AbsoluteConstraints(20, 318, 960, 240));
+
+        // Crear la tarjeta de la foto del producto
+        pnl_product_photo = new javax.swing.JPanel();
+        pnl_product_photo.setBorder(javax.swing.BorderFactory.createTitledBorder(
+                null, "Foto del Producto",
+                javax.swing.border.TitledBorder.CENTER,
+                javax.swing.border.TitledBorder.DEFAULT_POSITION,
+                new java.awt.Font("Tahoma", java.awt.Font.BOLD, 11)));
+        pnl_product_photo.setLayout(new java.awt.BorderLayout(0, 4));
+        pnl_product_photo.setOpaque(false);
+
+        lbl_product_photo = new javax.swing.JLabel();
+        lbl_product_photo.setHorizontalAlignment(javax.swing.SwingConstants.CENTER);
+        lbl_product_photo.setIcon(ProductImageHelper.getProductImage(null, 125, 125));
+        lbl_product_photo.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+        lbl_product_photo.setToolTipText("Haz clic aquí para seleccionar o cambiar la foto");
+
+        javax.swing.JPanel pnlBtns = new javax.swing.JPanel(new java.awt.GridLayout(2, 1, 0, 3));
+        pnlBtns.setOpaque(false);
+
+        btn_upload_product_photo = new javax.swing.JButton("Subir Foto");
+        btn_upload_product_photo.setFont(new java.awt.Font("Tahoma", java.awt.Font.BOLD, 11));
+        btn_upload_product_photo.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+
+        btn_remove_product_photo = new javax.swing.JButton("Quitar Foto");
+        btn_remove_product_photo.setFont(new java.awt.Font("Tahoma", java.awt.Font.PLAIN, 11));
+        btn_remove_product_photo.setCursor(new java.awt.Cursor(java.awt.Cursor.HAND_CURSOR));
+
+        pnlBtns.add(btn_upload_product_photo);
+        pnlBtns.add(btn_remove_product_photo);
+
+        pnl_product_photo.add(lbl_product_photo, java.awt.BorderLayout.CENTER);
+        pnl_product_photo.add(pnlBtns, java.awt.BorderLayout.SOUTH);
+
+        // Reconfigurar jPanel9 con un layout limpio y ordenado sin cortes
+        jPanel9.removeAll();
+        org.netbeans.lib.awtextra.AbsoluteLayout layout9 = new org.netbeans.lib.awtextra.AbsoluteLayout();
+        jPanel9.setLayout(layout9);
+
+        // Columna 1 (Código, Nombre, Precio Venta)
+        jPanel9.add(jLabel3, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 30, 95, 30));
+        jPanel9.add(txt_product_code, new org.netbeans.lib.awtextra.AbsoluteConstraints(115, 30, 150, 30));
+
+        jPanel9.add(jLabel4, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 80, 95, 30));
+        jPanel9.add(txt_product_name, new org.netbeans.lib.awtextra.AbsoluteConstraints(115, 80, 150, 30));
+
+        jLabel5.setText("Precio Venta:");
+        jPanel9.add(jLabel5, new org.netbeans.lib.awtextra.AbsoluteConstraints(15, 130, 95, 30));
+        jPanel9.add(txt_product_unit_price, new org.netbeans.lib.awtextra.AbsoluteConstraints(115, 130, 150, 30));
+
+        // Columna 2 (Descripción, Categoría, ID)
+        jPanel9.add(jLabel6, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 30, 95, 30));
+        jPanel9.add(txt_product_description, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 30, 165, 30));
+
+        jPanel9.add(jLabel7, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 80, 95, 30));
+        jPanel9.add(cmd_categories, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 80, 165, 30));
+
+        jPanel9.add(jLabel8, new org.netbeans.lib.awtextra.AbsoluteConstraints(280, 130, 95, 30));
+        jPanel9.add(txt_product_id, new org.netbeans.lib.awtextra.AbsoluteConstraints(380, 130, 165, 30));
+
+        // Columna 3: Tarjeta de Foto
+        jPanel9.add(pnl_product_photo, new org.netbeans.lib.awtextra.AbsoluteConstraints(565, 20, 185, 215));
+
+        // Columna 4: Botones CRUD (uniformes y sin recortes)
+        jPanel9.add(btn_register_product, new org.netbeans.lib.awtextra.AbsoluteConstraints(770, 25, 165, 32));
+        jPanel9.add(btn_update_product, new org.netbeans.lib.awtextra.AbsoluteConstraints(770, 67, 165, 32));
+        jPanel9.add(btn_delete_product, new org.netbeans.lib.awtextra.AbsoluteConstraints(770, 109, 165, 32));
+        jPanel9.add(btn_cancel_product, new org.netbeans.lib.awtextra.AbsoluteConstraints(770, 151, 165, 32));
+        jPanel9.add(btn_activate_product, new org.netbeans.lib.awtextra.AbsoluteConstraints(770, 193, 165, 32));
+
+        jPanel9.revalidate();
+        jPanel9.repaint();
+        jPanel3.revalidate();
+        jPanel3.repaint();
+    }
+
+    /**
+     * Aplica estilo moderno, alturas confortables (28px), renderizadores zebra con badges de estado,
+     * alineaciones inteligentes y proporciones optimizadas a todas las tablas del sistema.
+     */
+    public void setupModernTablesStyle() {
+        Models.GenericTableRenderer genericRenderer = new Models.GenericTableRenderer();
+        Models.Renderers productRenderer = new Models.Renderers();
+
+        // 1. Limpiar fondos grises de todos los viewports en scrollpanes
+        javax.swing.JScrollPane[] allScrolls = {
+            jScrollPane1, jScrollPane2, jScrollPane4, jScrollPane5,
+            jScrollPane6, jScrollPane7, jScrollPane8, jScrollPane9, jScrollPane10
+        };
+        for (javax.swing.JScrollPane sp : allScrolls) {
+            if (sp != null) {
+                sp.getViewport().setBackground(java.awt.Color.WHITE);
+                sp.setBackground(java.awt.Color.WHITE);
+                sp.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)));
+            }
+        }
+
+        styleTable(products_table, productRenderer, 50, 95, 175, 230, 115, 80, 125, 90);
+        styleTable(purchases_table, genericRenderer, 55, 220, 80, 110, 110, 225, 120);
+        styleTable(sales_table, genericRenderer, 55, 220, 80, 110, 110, 225, 120);
+        styleTable(custormers_table, genericRenderer, 120, 220, 120, 240, 250);
+        styleTable(employees_table, genericRenderer, 110, 180, 110, 170, 190, 110, 100, 90);
+        styleTable(suppliers_table, genericRenderer, 90, 180, 110, 180, 200, 110, 90);
+        styleTable(categories_table, genericRenderer, 80, 450);
+        styleTable(table_all_sales, genericRenderer, 100, 210, 200, 120, 160, 130);
+        styleTable(table_all_purchases, genericRenderer, 100, 260, 140, 160, 140);
+        if (table_employee_salaries != null) {
+            styleTable(table_employee_salaries, genericRenderer, 110, 180, 110, 100, 110, 180, 130);
+        }
+    }
+
+    private void styleTable(javax.swing.JTable table, javax.swing.table.TableCellRenderer renderer, int... colWidths) {
+        if (table == null) return;
+        table.setRowHeight(28);
+        table.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 13));
+        table.setSelectionMode(javax.swing.ListSelectionModel.SINGLE_SELECTION);
+        table.setShowGrid(false);
+        table.setIntercellSpacing(new java.awt.Dimension(0, 0));
+        table.setDefaultRenderer(Object.class, renderer);
+        table.setBackground(java.awt.Color.WHITE);
+
+        if (table.getParent() instanceof javax.swing.JViewport) {
+            ((javax.swing.JViewport) table.getParent()).setBackground(java.awt.Color.WHITE);
+        }
+
+        javax.swing.table.JTableHeader header = table.getTableHeader();
+        if (header != null) {
+            header.setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 13));
+            header.setPreferredSize(new java.awt.Dimension(0, 32));
+            header.setReorderingAllowed(false);
+        }
+
+        applyColumnWidths(table, colWidths);
+    }
+
+    public static void applyColumnWidths(javax.swing.JTable table, int... widths) {
+        if (table == null || table.getColumnModel() == null) return;
+        javax.swing.table.TableColumnModel cm = table.getColumnModel();
+        for (int i = 0; i < widths.length && i < cm.getColumnCount(); i++) {
+            cm.getColumn(i).setPreferredWidth(widths[i]);
+        }
+    }
+
     private void setupHeaderProfile() {
         if (loggedEmployee == null) {
             return;
@@ -2469,7 +2945,7 @@ public class SystemView extends javax.swing.JFrame {
         // 2. Pestaña principal del Kardex
         jPanelKardexTab = new javax.swing.JPanel(new java.awt.BorderLayout(0, 12));
         jPanelKardexTab.setBackground(new java.awt.Color(248, 250, 252));
-        jPanelKardexTab.setBorder(javax.swing.BorderFactory.createEmptyBorder(14, 18, 14, 18));
+        jPanelKardexTab.setBorder(javax.swing.BorderFactory.createEmptyBorder(14, 28, 16, 28));
 
         // 2.1 Contenedor superior (Título + KPIs + Barra de herramientas)
         javax.swing.JPanel pnlTop = new javax.swing.JPanel();
@@ -2560,7 +3036,7 @@ public class SystemView extends javax.swing.JFrame {
         // 2.2 Tabla Kardex con modelo seguro no editable
         String[] columnNames = {
             "ID", "Fecha / Hora", "Código", "Producto", "Tipo Movimiento",
-            "Responsable", "Cant.", "Efecto", "Saldo Ant.", "Saldo Post.", "Observación / Justificación"
+            "Responsable", "Cant.", "Efecto", "Saldo Ant.", "Saldo Post.", "Observación"
         };
         javax.swing.table.DefaultTableModel km = new javax.swing.table.DefaultTableModel(columnNames, 0) {
             @Override
@@ -2570,23 +3046,27 @@ public class SystemView extends javax.swing.JFrame {
         };
 
         kardex_table = new javax.swing.JTable(km);
-        kardex_table.setRowHeight(25);
+        kardex_table.setRowHeight(28);
         kardex_table.setFont(new java.awt.Font("Segoe UI", java.awt.Font.PLAIN, 12));
+        kardex_table.setShowGrid(false);
+        kardex_table.setIntercellSpacing(new java.awt.Dimension(0, 0));
+        kardex_table.setBackground(java.awt.Color.WHITE);
         kardex_table.getTableHeader().setFont(new java.awt.Font("Segoe UI", java.awt.Font.BOLD, 12));
+        kardex_table.getTableHeader().setPreferredSize(new java.awt.Dimension(0, 32));
         kardex_table.getTableHeader().setReorderingAllowed(false);
 
         if (kardex_table.getColumnModel().getColumnCount() >= 11) {
             kardex_table.getColumnModel().getColumn(0).setPreferredWidth(45);
             kardex_table.getColumnModel().getColumn(1).setPreferredWidth(125);
             kardex_table.getColumnModel().getColumn(2).setPreferredWidth(65);
-            kardex_table.getColumnModel().getColumn(3).setPreferredWidth(140);
-            kardex_table.getColumnModel().getColumn(4).setPreferredWidth(130);
-            kardex_table.getColumnModel().getColumn(5).setPreferredWidth(110);
-            kardex_table.getColumnModel().getColumn(6).setPreferredWidth(50);
-            kardex_table.getColumnModel().getColumn(7).setPreferredWidth(75);
-            kardex_table.getColumnModel().getColumn(8).setPreferredWidth(70);
-            kardex_table.getColumnModel().getColumn(9).setPreferredWidth(70);
-            kardex_table.getColumnModel().getColumn(10).setPreferredWidth(170);
+            kardex_table.getColumnModel().getColumn(3).setPreferredWidth(135);
+            kardex_table.getColumnModel().getColumn(4).setPreferredWidth(120);
+            kardex_table.getColumnModel().getColumn(5).setPreferredWidth(115);
+            kardex_table.getColumnModel().getColumn(6).setPreferredWidth(48);
+            kardex_table.getColumnModel().getColumn(7).setPreferredWidth(68);
+            kardex_table.getColumnModel().getColumn(8).setPreferredWidth(78);
+            kardex_table.getColumnModel().getColumn(9).setPreferredWidth(78);
+            kardex_table.getColumnModel().getColumn(10).setPreferredWidth(160);
         }
 
         javax.swing.table.DefaultTableCellRenderer centerRenderer = new javax.swing.table.DefaultTableCellRenderer();
@@ -2621,6 +3101,8 @@ public class SystemView extends javax.swing.JFrame {
         kardex_table.getColumnModel().getColumn(7).setCellRenderer(efectoRenderer);
 
         javax.swing.JScrollPane scrollKardex = new javax.swing.JScrollPane(kardex_table);
+        scrollKardex.getViewport().setBackground(java.awt.Color.WHITE);
+        scrollKardex.setBackground(java.awt.Color.WHITE);
         scrollKardex.setBorder(javax.swing.BorderFactory.createLineBorder(new java.awt.Color(226, 232, 240)));
 
         jPanelKardexTab.add(pnlTop, java.awt.BorderLayout.NORTH);
@@ -2943,6 +3425,10 @@ public class SystemView extends javax.swing.JFrame {
     public javax.swing.JButton btn_register_category;
     public javax.swing.JButton btn_register_customer;
     public javax.swing.JButton btn_register_employee;
+        public javax.swing.JLabel lbl_product_photo;
+    public javax.swing.JButton btn_upload_product_photo;
+    public javax.swing.JButton btn_remove_product_photo;
+    public javax.swing.JPanel pnl_product_photo;
     public javax.swing.JButton btn_register_product;
     public javax.swing.JButton btn_register_supplier;
     public javax.swing.JButton btn_remove_purchase;
