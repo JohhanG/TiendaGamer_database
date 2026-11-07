@@ -216,63 +216,78 @@ flowchart TD
 
 ## 🛠️ Instalación y Puesta en Marcha
 
-Sigue estos sencillos pasos para ejecutar el proyecto en tu máquina local:
+El sistema cuenta con arquitectura de **Conexión Dual Inteligente (Nube + Local)**. Esto le permite al evaluador o docente probar el sistema de dos maneras distintas según su preferencia:
 
-### 1. Clonar el Repositorio
-```bash
-git clone https://github.com/JohhanG/TiendaGamer_database.git
-cd TiendaGamer_database
-```
+---
 
-### 2. Importar la Base de Datos
-1. Abre tu gestor de base de datos MySQL (por ejemplo, **phpMyAdmin** en `http://localhost/phpmyadmin` o **MySQL Workbench**).
-2. Crea una base de datos vacía llamada:
-   ```sql
-   CREATE DATABASE tiendagamer_database;
+### 🌐 Opción A: Prueba con Base de Datos en la Nube (Aiven MySQL Cloud)
+Permite conectarse directamente al servidor MySQL en la nube sin necesidad de tener MySQL instalado localmente:
+
+1. **Clonar el Repositorio:**
+   ```bash
+   git clone https://github.com/JohhanG/TiendaGamer_database.git
+   cd TiendaGamer_database
    ```
-3. Importa el archivo SQL incluido en el repositorio:
-   📁 **`database/tiendagamer_database.sql`**
-   *(Este archivo ya incluye todas las tablas, relaciones, disparadores y datos iniciales de prueba).*
+2. **Configurar `db.properties`:**
+   * Crea una copia del archivo **`db.properties.example`** en la misma raíz y renómbralo a **`db.properties`**.
+   * Ingresa las credenciales del servidor en la nube provistas para la evaluación:
+     ```properties
+     # --- Conexión Principal (Nube / Aiven MySQL Cloud) ---
+     db.host=mysql-18f6edfe-tiendagamer4.a.aivencloud.com
+     db.port=20448
+     db.name=defaultdb
+     db.user=avnadmin
+     db.password=TU_PASSWORD_AIVEN
+     db.ssl=true
+     ```
+3. **Ejecutar:**
+   * **Desde NetBeans**: Abre el proyecto, haz clic en **Clean and Build** y presiona <kbd>F6</kbd> (**Run**).
+   * **Sin abrir NetBeans**: Haz doble clic en el archivo `Iniciar_TiendaGamer.bat` (o ejecuta `dist/TIENDA_GAMER.jar`).
 
-### 3. Configuración Segura de Conexión (`db.properties`)
-Para proteger tus contraseñas y facilitar la evaluación:
-1. En la raíz del proyecto encontrarás el archivo de ejemplo **`db.properties.example`**.
-2. Crea una copia de este archivo en la misma raíz y renómbralo a **`db.properties`**.
-3. Ajusta tus credenciales según tu entorno:
+---
 
-   **Modo Local (XAMPP / MariaDB / MySQL Local):**
-   ```properties
-   db.host=localhost
-   db.port=3306
-   db.name=tiendagamer_database
-   db.user=root
-   db.password=TU_PASSWORD_LOCAL
-   db.ssl=false
-   ```
-   > 💡 *Nota para evaluadores con XAMPP*: Si utilizas XAMPP con la configuración por defecto (usuario `root` y contraseña vacía), puedes dejar `db.password=` o incluso omitir el archivo; el sistema cuenta con detección automática de valores por defecto.
+### 💻 Opción B: Prueba con Base de Datos Local (XAMPP / MySQL Workbench)
+Si el docente o evaluador prefiere probar el sistema con su propio motor MySQL local:
 
-   **Modo Nube Global (Aiven / Railway / Cloud MySQL):**
-   ```properties
-   db.host=mysql-xxxxxxxx-tiendagamer4.a.aivencloud.com
-   db.port=20448
-   db.name=defaultdb
-   db.user=avnadmin
-   db.password=TU_PASSWORD_AIVEN
-   db.ssl=true
-   ```
-   > 🔒 *Cifrado SSL Automático*: El sistema detecta hosts remotos y activa el cifrado seguro SSL/TLS con validación de certificados de forma automática.
+1. **Crear e Importar la Base de Datos:**
+   * Abre **phpMyAdmin** (`http://localhost/phpmyadmin`) o **MySQL Workbench**.
+   * Crea una base de datos vacía llamada `tiendagamer_database`:
+     ```sql
+     CREATE DATABASE tiendagamer_database;
+     ```
+   * Importa el archivo SQL incluido en el repositorio:  
+     📁 **`database/tiendagamer_database.sql`**  
+     *(Contiene todas las tablas, relaciones, disparadores y datos de prueba).*
 
-### 4. Abrir y Ejecutar en NetBeans
-1. Abre **Apache NetBeans**.
-2. Ve a **File** $\rightarrow$ **Open Project...** y selecciona la carpeta del proyecto.
-3. Haz clic derecho sobre el proyecto y selecciona **Clean and Build**.
-4. Presiona **F6** o haz clic en **Run Project** para iniciar el sistema.
+2. **Configurar las Credenciales Locales en `db.properties`:**
+   * Si creaste el archivo **`db.properties`**, ajusta la sección de respaldo local:
+     ```properties
+     # --- Base de Datos Local (XAMPP / MySQL) ---
+     db.fallback.enabled=true
+     db.fallback.host=localhost
+     db.fallback.port=3306
+     db.fallback.name=tiendagamer_database
+     db.fallback.user=root
+     db.fallback.password=TU_PASSWORD_LOCAL
+     db.fallback.ssl=false
+     ```
+   > 💡 *Detección automática para XAMPP*: Si utilizas XAMPP con la configuración estándar (`root` sin contraseña), el sistema cuenta con auto-detección y se conectará automáticamente a tu base de datos local en caso de que desconectes internet o desactives la nube.
 
-### 5. Ejecución Rápida sin NetBeans (Lanzador .BAT o Archivo .JAR)
-Para ejecutar la aplicación como un programa de escritorio independiente sin necesidad de abrir NetBeans:
-* **Con el lanzador directo**: Haz doble clic en el archivo `Iniciar_TiendaGamer.bat` ubicado en la raíz del proyecto (abre la app con `javaw` sin consolas de fondo).
-* **Desde la carpeta dist**: Ingresa a `dist/` y haz doble clic sobre `TIENDA_GAMER.jar` (requiere que la subcarpeta `lib/` esté presente en la misma ubicación).
-* La aplicación se conectará automáticamente a la base de datos en la nube y abrirá la pantalla de Login de inmediato.
+3. **Ejecutar:**
+   * Presiona **F6** en NetBeans o ejecuta `Iniciar_TiendaGamer.bat`.
+
+---
+
+### ⚡ Conmutación por Error Automática (Dual Failover)
+El sistema implementa un mecanismo de alta disponibilidad:
+* Si la conexión principal a la nube no responde en menos de 1.5 segundos (por fallo de red o corte de internet), el sistema **conmuta automáticamente a la base de datos local** (`localhost:3306`) sin detener la aplicación ni mostrar errores abruptos.
+
+---
+
+### 🚀 Ejecución Rápida sin NetBeans (Lanzador .BAT o Archivo .JAR)
+Para operar el sistema como una aplicación de escritorio final sin necesidad de abrir NetBeans:
+* **Con el lanzador directo**: Haz doble clic en `Iniciar_TiendaGamer.bat` ubicado en la raíz del proyecto (ejecuta el aplicativo en segundo plano con `javaw`).
+* **Desde la carpeta dist**: Ingresa a `dist/` y haz doble clic sobre `TIENDA_GAMER.jar` (acompañado de su carpeta `lib/`).
 
 ---
 

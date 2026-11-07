@@ -1,23 +1,29 @@
 # ==============================================================
 # PLANTILLA DE CONFIGURACIÓN DE BASE DE DATOS DUAL (TIENDA GAMER)
 # ==============================================================
-# Renombra este archivo como 'db.properties' en la raíz del proyecto.
+# El sistema cuenta con arquitectura Dual Failover:
+# 1. Se conecta a la Nube (Aiven MySQL Cloud) mediante SSL/TLS.
+# 2. Si no hay conexión o se desea probar localmente, conmuta
+#    automáticamente a la Base de Datos Local en menos de 1.5s.
+# ==============================================================
+# Para configurar tus credenciales, renombra este archivo como
+# 'db.properties' en la raíz del proyecto.
 # ==============================================================
 
-# --- 1. Conexión Principal (Nube / Web - Aiven / Railway / AWS) ---
-db.host=mysql-xxxx-tiendagamer.a.aivencloud.com
+# --- 1. Conexión Principal (Nube / Aiven MySQL Cloud) ---
+db.host=mysql-18f6edfe-tiendagamer4.a.aivencloud.com
 db.port=20448
 db.name=defaultdb
 db.user=avnadmin
-db.password=TU_PASSWORD_NUBE
+db.password=TU_PASSWORD_AIVEN
 db.ssl=true
 
 # --- 2. Conexión de Respaldo Automático (Localhost / XAMPP / MySQL) ---
-# Se activa automáticamente si la nube no está disponible
+# Requiere importar previamente: database/tiendagamer_database.sql
 db.fallback.enabled=true
 db.fallback.host=localhost
 db.fallback.port=3306
 db.fallback.name=tiendagamer_database
 db.fallback.user=root
-db.fallback.password=TU_PASSWORD_LOCAL
+db.fallback.password=
 db.fallback.ssl=false
