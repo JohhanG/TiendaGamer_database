@@ -33,7 +33,11 @@ Sistema integral de escritorio para la administración operativa, comercial y de
 * **Punto de Venta y Facturación**: Registro de ventas con cálculo automático de subtotales, impuestos, descuento de existencias en tiempo real e impresión de comprobante.
 * **Gestión de Compras y Devoluciones**: Registro de compras con entrada al Kardex y anulación de compras con devolución registrada a proveedores.
 * **Gestión de Nómina y Sueldos**: Control de salarios con modificación autorizada exclusivamente para el Administrador General y reporte consolidado de nómina.
-* **Diseño Gamer Moderno**: Interfaz con paleta Slate Gamer (`#181826`), selector de Tema Claro / Oscuro en tiempo real, bloqueo de arrastre accidental de columnas y avatares dinámicos en cabecera.
+* **Catálogo de Productos con Galería de Fotos**: Carga, visualización y eliminación de imágenes de productos en tiempo real, con almacenamiento local en `product_photos/` y persistencia de ruta en base de datos.
+* **Tablas Modernas con Zebra Striping y Badges de Estado**: Renderizado dinámico (`GenericTableRenderer`) con altura de fila de 28 px, alineación inteligente (centro, derecha, izquierda), padding interior de 8 px y badges semánticos (verde/rojo).
+* **Botones Gamer Estandarizados**: Alineación vertical uniforme (155 × 34 px) con esquinas redondeadas, paleta gamer (Índigo, Celeste, Carmín, Esmeralda, Pizarra), cursor interactivo y etiquetas legibles sin recortes.
+* **Diseño Gamer y Modo Claro / Oscuro**: Interfaz con paleta Slate Gamer (`#181826`), selector de Tema Claro / Oscuro en tiempo real, bloqueo de arrastre accidental de columnas y avatares dinámicos en cabecera.
+* **Empaquetado Autónomo (.jar) y Lanzador (.bat)**: Distribución portable lista para producción en `dist/TIENDA_GAMER.jar` y lanzador directo de escritorio `Iniciar_TiendaGamer.bat`.
 * **Seguridad y Auditoría**: Encriptación de contraseñas con MD5, registro de eventos en `activity_log`, cierre automático de sesión por inactividad (15 min) y desacople de credenciales en `db.properties`.
 
 ---
@@ -87,6 +91,11 @@ El sistema implementa formalmente la matriz de privilegios y perfiles definida p
 ### 5. Sueldos y Nómina
 * Pestaña especializada en el módulo de Reportes con resumen de la nómina global y número de colaboradores.
 * Modificación segura de salario por empleado con ventana modal exclusiva para el Administrador General.
+
+### 6. Catálogo de Productos y Galería Multimedia
+* **Gestión de Fotografías**: Subida de fotos desde el explorador de archivos con redimensionamiento proporcional automático y soporte de eliminación con restauración a placeholder.
+* **Alertas Visuales de Existencias**: Filas resaltadas automáticamente en rojo suave para agotados, ámbar para stock crítico ($\le 5$) y rojo oscuro para productos inactivos.
+* **Formulario y Botones Estandarizados**: Alineación vertical de botones con tamaño fijo (165 × 32 px), esquinas redondeadas y etiquetas completas sin recortes.
 
 ---
 
@@ -259,6 +268,12 @@ Para proteger tus contraseñas y facilitar la evaluación:
 3. Haz clic derecho sobre el proyecto y selecciona **Clean and Build**.
 4. Presiona **F6** o haz clic en **Run Project** para iniciar el sistema.
 
+### 5. Ejecución Rápida sin NetBeans (Lanzador .BAT o Archivo .JAR)
+Para ejecutar la aplicación como un programa de escritorio independiente sin necesidad de abrir NetBeans:
+* **Con el lanzador directo**: Haz doble clic en el archivo `Iniciar_TiendaGamer.bat` ubicado en la raíz del proyecto (abre la app con `javaw` sin consolas de fondo).
+* **Desde la carpeta dist**: Ingresa a `dist/` y haz doble clic sobre `TIENDA_GAMER.jar` (requiere que la subcarpeta `lib/` esté presente en la misma ubicación).
+* La aplicación se conectará automáticamente a la base de datos en la nube y abrirá la pantalla de Login de inmediato.
+
 ---
 
 ## 🔑 Credenciales de Prueba
@@ -282,29 +297,38 @@ El código fuente sigue rigurosamente el patrón de diseño **MVC**:
 
 ```text
 TiendaGamer/
+├── Iniciar_TiendaGamer.bat            # Lanzador directo de escritorio (ejecución sin NetBeans)
 ├── database/
-│   └── tiendagamer_database.sql       # Respaldo SQL completo para instalación
+│   └── tiendagamer_database.sql       # Respaldo SQL completo para instalación (incluye columna image)
 ├── db.properties.example              # Plantilla pública de conexión a base de datos
+├── product_photos/                    # Carpeta de almacenamiento de fotografías de productos
 ├── src/
 │   ├── Controllers/                   # Controladores con lógica de negocio y eventos
+│   │   ├── CategoriesController.java  # Control y filtrado de categorías
+│   │   ├── CustomersController.java   # Gestión y registro de clientes
 │   │   ├── EmployeesController.java   # Gestión de empleados y perfiles
 │   │   ├── KardexController.java      # Lógica de Kardex y ajustes físicos
 │   │   ├── LoginController.java       # Autenticación y control de intentos
-│   │   ├── ProductsController.java    # Control de catálogo de productos
+│   │   ├── ProductsController.java    # Control de productos, fotos y catálogo
 │   │   ├── PurchasesController.java   # Compras y sincronización con Kardex
 │   │   ├── ReportsController.java     # Reportes y gestión de sueldos
 │   │   ├── SalesController.java       # Punto de venta y facturación
-│   │   └── SettingsControllers.java   # Matriz de permisos RBAC y navegación
+│   │   ├── SettingsControllers.java   # Matriz de permisos RBAC y navegación
+│   │   └── SuppliersController.java   # Gestión de proveedores
 │   ├── Models/                        # Clases de dominio y DAO (Acceso a Datos)
-│   │   ├── ConnectionMySQL.java       # Manejador dinámico de conexión JDBC
+│   │   ├── ConnectionMySQL.java       # Manejador dinámico de conexión JDBC (Nube / Local)
+│   │   ├── GenericTableRenderer.java  # Renderizador visual moderno de tablas (Zebra & Badges)
+│   │   ├── Renderers.java             # Renderizador especializado de productos con alertas
 │   │   ├── Employees.java / Dao.java  # Modelo y consultas de empleados
 │   │   ├── Kardex.java / Dao.java     # Modelo y consultas de Kardex
-│   │   ├── Products.java / Dao.java   # Modelo y consultas de productos
+│   │   ├── Products.java / Dao.java   # Modelo y consultas de productos (soporte de fotos)
 │   │   ├── Purchases.java / Dao.java  # Modelo y consultas de compras
 │   │   └── Sales.java / Dao.java      # Modelo y consultas de ventas
 │   ├── Views/                         # Formularios gráficos en Java Swing
 │   │   ├── LoginView.java             # Pantalla de inicio de sesión gamer
-│   │   ├── SystemView.java            # Ventana principal y pestañas operativas
+│   │   ├── SystemView.java            # Ventana principal, pestañas operativas y tablas modernas
+│   │   ├── ProductImageHelper.java    # Procesamiento y previsualización de imágenes de productos
+│   │   ├── AvatarHelper.java          # Generación y carga de avatares de perfil
 │   │   ├── ThemeManager.java          # Gestor de Tema Claro / Oscuro (FlatLaf)
 │   │   └── Print.java                 # Generador visual de comprobantes
 │   └── Main/
@@ -333,6 +357,10 @@ TiendaGamer/
 - [x] Control de Acceso Basado en Roles (RBAC) con 4 perfiles oficiales
 - [x] Módulo integral de Kardex y Ajustes de Inventario Físico
 - [x] Sincronización completa de Compras, Ventas y Devoluciones con Kardex
+- [x] Subida, previsualización y eliminación de fotografías de productos con persistencia
+- [x] Estilización moderna de tablas (Zebra striping, badges y alineación inteligente)
+- [x] Estandarización de botones con paleta gamer y dimensiones homogéneas
+- [x] Empaquetado ejecutable `.jar` y lanzador de escritorio (`Iniciar_TiendaGamer.bat`)
 - [x] Interfaz gráfica estilizada en FlatLaf con soporte Modo Claro / Oscuro
 - [x] README y documentación técnica completa con diagramas de flujo
 - [ ] Diapositivas de exposición final
