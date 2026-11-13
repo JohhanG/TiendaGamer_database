@@ -107,6 +107,20 @@ public class SalesController implements ActionListener, MouseListener, KeyListen
         this.views.btn_new_sale.addActionListener(this);
 
         this.views.sales_table.addMouseListener(this);
+
+        // Tooltips de accesibilidad y ayuda visual para el vendedor
+        setupSalesTooltips();
+    }
+
+    // Configurar tooltips interactivos para agilizar el punto de venta
+    private void setupSalesTooltips() {
+        views.txt_sale_product_code.setToolTipText("Ingrese el código del producto y presione ENTER para autocompletar");
+        views.txt_sale_quantity.setToolTipText("Cantidad a vender (debe ser menor o igual al stock disponible)");
+        views.txt_sale_customer_id.setToolTipText("Cédula del cliente (presione ENTER para autocompletar datos)");
+        views.btn_add_product_sale.setToolTipText("Agregar producto a la lista temporal de venta");
+        views.btn_confirm_sale.setToolTipText("Procesar transacción atómica de venta (Cabecera, Detalle y Kardex)");
+        views.btn_remove_sale.setToolTipText("Eliminar producto seleccionado de la lista temporal");
+        views.btn_new_sale.setToolTipText("Limpiar formulario e iniciar una nueva venta");
     }
 
     // =========================================
