@@ -54,12 +54,36 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
     private boolean validarCedula(String cedula) {
         if (!cedula.matches("\\d+")) {
             JOptionPane.showMessageDialog(null,
-                    "La identificación solo puede contener números");
+                    "La identificación solo puede contener números",
+                    "Validación de Identificación", JOptionPane.WARNING_MESSAGE);
             return false;
         }
         if (cedula.length() > 10) {
             JOptionPane.showMessageDialog(null,
-                    "La identificación no puede tener más de 10 dígitos");
+                    "La identificación no puede tener más de 10 dígitos",
+                    "Validación de Identificación", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+        return true;
+    }
+
+    // ✅ Validar formato de teléfono (números y longitud de 7 a 10 dígitos)
+    private boolean validarTelefono(String telefono) {
+        if (!telefono.matches("\\d{7,10}")) {
+            JOptionPane.showMessageDialog(null,
+                    "El teléfono debe contener entre 7 y 10 dígitos numéricos.",
+                    "Validación de Teléfono", JOptionPane.WARNING_MESSAGE);
+            return false;
+        }
+        return true;
+    }
+
+    // ✅ Validar formato de correo electrónico
+    private boolean validarEmail(String email) {
+        if (!email.matches("^[\\w-\\.]+@([\\w-]+\\.)+[\\w-]{2,4}$")) {
+            JOptionPane.showMessageDialog(null,
+                    "Ingrese un formato de correo electrónico válido (ejemplo: cliente@correo.com)",
+                    "Validación de Correo", JOptionPane.WARNING_MESSAGE);
             return false;
         }
         return true;
@@ -72,13 +96,19 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
         }
 
         String cedula = views.txt_customer_id.getText().trim();
-        if (!validarCedula(cedula)) return; // ✅ Validación
+        if (!validarCedula(cedula)) return; // ✅ Validación Cédula
+
+        String telefono = views.txt_customer_telephone.getText().trim();
+        if (!validarTelefono(telefono)) return; // ✅ Validación Teléfono
+
+        String email = views.txt_customer_email.getText().trim();
+        if (!validarEmail(email)) return; // ✅ Validación Correo
 
         customer.setId(Integer.parseInt(cedula));
         customer.setFull_name(views.txt_customer_fullname.getText().trim());
         customer.setAddress(views.txt_customer_address.getText().trim());
-        customer.setEmail(views.txt_customer_email.getText().trim());
-        customer.setTelephone(views.txt_customer_telephone.getText().trim());
+        customer.setEmail(email);
+        customer.setTelephone(telefono);
 
         if (customersDao.registerCustomersQuery(customer)) {
             JOptionPane.showMessageDialog(null, "Cliente registrado con éxito");
@@ -98,6 +128,12 @@ public class CustomersController implements ActionListener, MouseListener, KeyLi
             JOptionPane.showMessageDialog(null, "Todos los campos son obligatorios");
             return;
         }
+
+        String telefono = views.txt_customer_telephone.getText().trim();
+        if (!validarTelefono(telefono)) return; // ✅ Validación Teléfono
+
+        String email = views.txt_customer_email.getText().trim();
+        if (!validarEmail(email)) return; // ✅ Validación Correo
 
         String cedula = views.txt_customer_id.getText().trim();
         if (!validarCedula(cedula)) return; // ✅ Validación
