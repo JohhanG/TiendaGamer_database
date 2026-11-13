@@ -76,6 +76,24 @@ public class KardexController implements ActionListener, KeyListener {
         if (views.cmb_filter_kardex != null) {
             views.cmb_filter_kardex.addActionListener(e -> cargarTablaKardex());
         }
+
+        setupKardexTooltips();
+    }
+
+    // Configurar tooltips explicativos en los controles del Kardex
+    private void setupKardexTooltips() {
+        if (views.txt_search_kardex != null) {
+            views.txt_search_kardex.setToolTipText("Buscar movimientos en Kardex por código o nombre de producto");
+        }
+        if (views.cmb_filter_kardex != null) {
+            views.cmb_filter_kardex.setToolTipText("Filtrar movimientos por tipo (Ventas, Compras, Devoluciones o Ajustes)");
+        }
+        if (views.btn_refresh_kardex != null) {
+            views.btn_refresh_kardex.setToolTipText("Actualizar y sincronizar el historial completo de Kardex");
+        }
+        if (views.btn_ajuste_inventario != null) {
+            views.btn_ajuste_inventario.setToolTipText("Abrir ventana modal para regularizar descuadres por conteo físico en bodega");
+        }
     }
 
     @Override
