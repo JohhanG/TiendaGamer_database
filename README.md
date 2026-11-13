@@ -193,6 +193,9 @@ flowchart TD
 
 | Concepto Técnico | Implementación en el Proyecto |
 | :--- | :--- |
+| **`Transacciones ACID (RNF-003)`** | Implementación de límites transaccionales con `conn.setAutoCommit(false)` y `conn.commit()`, garantizando atomicidad en ventas, compras, cancelaciones y ajustes. |
+| **`Mecanismo de Rollback`** | Reversión atómica automática (`conn.rollback()`) ante cualquier fallo de red o inconsistencia de inventario, protegiendo la base de datos contra registros corruptos. |
+| **`Dual Failover de Conexión`** | Conmutación por error inteligente entre la nube (Aiven) y el servidor local (XAMPP) en menos de 1.5 s sin interrupción operativa. |
 | **`PreparedStatement`** | Utilizado en el 100% de las operaciones DAO para prevenir ataques de inyección SQL. |
 | **`Patrón MVC`** | Desacopla la lógica de datos (`Models`), la interfaz gráfica (`Views`) y la lógica de negocio (`Controllers`). |
 | **`Encapsulamiento`** | Atributos privados con métodos de acceso `getters` y `setters` en todas las clases de entidad. |
