@@ -41,7 +41,7 @@ public class ConnectionMySQL {
     private String fallbackPort = "3306";
     private String fallbackDatabase = "tiendagamer_database";
     private String fallbackUser = "root";
-    private String fallbackPassword = "Familia22@#";
+    private String fallbackPassword = "";
     private String fallbackSsl = "false";
 
     // Estado público de la conexión activa

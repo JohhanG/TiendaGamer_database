@@ -18,8 +18,144 @@ public class SalesDao {
     PreparedStatement pst;
     ResultSet rs;
 
+    // =========================================================================
+    // RNF-003: REGISTRAR VENTA COMPLETA BAJO TRANSACCIÓN ATÓMICA ACID (CON ROLLBACK)
+    // =========================================================================
+    public boolean registerSaleTransactional(int customer_id, int employee_id, double total, List<Object[]> items) {
+        String insertSale = "INSERT INTO sales(customer_id, employee_id, total, sale_date, estado) VALUES(?,?,?,?,?)";
+        String insertDetail = "INSERT INTO sale_details(sale_id, product_id, sale_quantity, sale_price, sale_subtotal) VALUES(?,?,?,?,?)";
+        String selectStock = "SELECT product_quantity FROM products WHERE id = ? FOR UPDATE";
+        String updateStock = "UPDATE products SET product_quantity = product_quantity - ? WHERE id = ?";
+        String insertKardex = "INSERT INTO kardex (idProducto, idTipoMov, idEmpleado, cantidad, efecto, saldoAnterior, saldoResultante, observacion) VALUES (?,?,?,?,?,?,?,?)";
+
+        Timestamp dateTime = new Timestamp(new Date().getTime());
+
+        try {
+            conn = cn.getConnection();
+            if (conn == null) {
+                JOptionPane.showMessageDialog(null, "No hay conexión disponible con la base de datos.");
+                return false;
+            }
+
+            // INICIO DE LA TRANSACCIÓN ACID (RNF-003)
+            conn.setAutoCommit(false);
+
+            // 1. Insertar Cabecera de la Venta
+            int saleId = 0;
+            try (PreparedStatement pstSale = conn.prepareStatement(insertSale, Statement.RETURN_GENERATED_KEYS)) {
+                pstSale.setInt(1, customer_id);
+                pstSale.setInt(2, employee_id);
+                pstSale.setDouble(3, total);
+                pstSale.setTimestamp(4, dateTime);
+                pstSale.setString(5, "COMPLETADA");
+                pstSale.executeUpdate();
+
+                try (ResultSet rsKeys = pstSale.getGeneratedKeys()) {
+                    if (rsKeys.next()) {
+                        saleId = rsKeys.getInt(1);
+                    }
+                }
+            }
+
+            if (saleId <= 0) {
+                conn.rollback();
+                throw new SQLException("No se pudo generar el ID único de la venta.");
+            }
+
+            // 2. Procesar cada ítem del carrito
+            for (Object[] item : items) {
+                int productId = (int) item[0];
+                int quantity  = (int) item[1];
+                double price  = (double) item[2];
+                double sub    = (double) item[3];
+
+                // 2.1 Verificar stock actual con bloqueo pesimista (FOR UPDATE)
+                int stockAnterior = 0;
+                try (PreparedStatement pstStockCheck = conn.prepareStatement(selectStock)) {
+                    pstStockCheck.setInt(1, productId);
+                    try (ResultSet rsStock = pstStockCheck.executeQuery()) {
+                        if (rsStock.next()) {
+                            stockAnterior = rsStock.getInt("product_quantity");
+                        } else {
+                            conn.rollback();
+                            throw new SQLException("El producto ID " + productId + " no existe.");
+                        }
+                    }
+                }
+
+                if (stockAnterior < quantity) {
+                    conn.rollback();
+                    JOptionPane.showMessageDialog(null, 
+                            "Transacción abortada (Rollback): Stock insuficiente para el producto ID " + productId + ".\n"
+                            + "Disponible: " + stockAnterior + ", Solicitado: " + quantity,
+                            "Error de Inventario", JOptionPane.ERROR_MESSAGE);
+                    return false;
+                }
+
+                int stockNuevo = stockAnterior - quantity;
+
+                // 2.2 Insertar detalle de venta
+                try (PreparedStatement pstDetail = conn.prepareStatement(insertDetail)) {
+                    pstDetail.setInt(1, saleId);
+                    pstDetail.setInt(2, productId);
+                    pstDetail.setInt(3, quantity);
+                    pstDetail.setDouble(4, price);
+                    pstDetail.setDouble(5, sub);
+                    pstDetail.executeUpdate();
+                }
+
+                // 2.3 Descontar stock
+                try (PreparedStatement pstUpdStock = conn.prepareStatement(updateStock)) {
+                    pstUpdStock.setInt(1, quantity);
+                    pstUpdStock.setInt(2, productId);
+                    pstUpdStock.executeUpdate();
+                }
+
+                // 2.4 Registrar en Kardex
+                try (PreparedStatement pstKardex = conn.prepareStatement(insertKardex)) {
+                    pstKardex.setInt(1, productId);
+                    pstKardex.setInt(2, 1); // 1: VENTA (SALIDA)
+                    pstKardex.setInt(3, employee_id);
+                    pstKardex.setInt(4, quantity);
+                    pstKardex.setString(5, "SALIDA");
+                    pstKardex.setInt(6, stockAnterior);
+                    pstKardex.setInt(7, stockNuevo);
+                    pstKardex.setString(8, "Venta realizada en Factura N° " + saleId);
+                    pstKardex.executeUpdate();
+                }
+            }
+
+            // TODAS LAS OPERACIONES FUERON EXITOSAS -> COMMIT TRANSACCIONAL
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            // EN CASO DE CUALQUIER FALLO -> ROLLBACK INMEDIATO (RNF-003)
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                    System.err.println("¡ROLLBACK ejecutado con éxito! Se revirtió la venta por: " + e.getMessage());
+                }
+            } catch (SQLException exRollback) {
+                System.err.println("Error al ejecutar rollback: " + exRollback.getMessage());
+            }
+            JOptionPane.showMessageDialog(null, 
+                    "Error transaccional al procesar la venta. Se ejecutó ROLLBACK:\n" + e.getMessage(),
+                    "Error de Transacción (ACID)", JOptionPane.ERROR_MESSAGE);
+            return false;
+
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (SQLException ignored) {}
+        }
+    }
+
     // =========================
-    // REGISTRAR VENTA
+    // REGISTRAR VENTA (COMPATIBILIDAD)
     // =========================
     public int registerSaleQuery(int customer_id, int employee_id, double total) {
         String query = "INSERT INTO sales(customer_id, employee_id, total, sale_date, estado) VALUES(?,?,?,?,?)";
@@ -142,6 +278,10 @@ public class SalesDao {
 
         try {
             conn = cn.getConnection();
+            if (conn == null) return false;
+
+            // RNF-003: TRANSACCIÓN ACID CON ROLLBACK
+            conn.setAutoCommit(false);
 
             // 0. Obtener employee_id de la venta original para Kardex
             int employeeId = 0;
@@ -200,14 +340,24 @@ public class SalesDao {
             rsDetails.close();
             pstDetails.close();
 
+            // CONFIRMACIÓN DE LA TRANSACCIÓN
+            conn.commit();
             return true;
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Error al procesar la devolución de la venta: " + e.getMessage());
+            // ROLLBACK EN CASO DE FALLO (RNF-003)
+            try {
+                if (conn != null) conn.rollback();
+            } catch (SQLException ignored) {}
+            JOptionPane.showMessageDialog(null, "Error al procesar la devolución de la venta (Rollback ejecutado): " + e.getMessage());
             return false;
         } finally {
-            try { if (pst  != null) pst.close();  } catch (SQLException ignored) {}
-            try { if (conn != null) conn.close(); } catch (SQLException ignored) {}
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (SQLException ignored) {}
         }
     }
 

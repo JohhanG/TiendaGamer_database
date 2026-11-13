@@ -20,6 +20,7 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
+import java.util.ArrayList;
 import java.util.List;
 import javax.swing.JOptionPane;
 import javax.swing.table.DefaultTableModel;
@@ -349,48 +350,19 @@ public class SalesController implements ActionListener, MouseListener, KeyListen
 
         if (confirm != JOptionPane.YES_OPTION) return;
 
-        // Registrar encabezado de la venta en la base de datos
-        int saleId = saleDao.registerSaleQuery(customerId, employeeId, total);
+        // RNF-003: Empaquetar ítems y procesar venta completa bajo Transacción Atómica ACID con Rollback
+        List<Object[]> items = new ArrayList<>();
+        for (int i = 0; i < model.getRowCount(); i++) {
+            int productId = parseIntSafe(model.getValueAt(i, 0).toString());
+            int quantity  = parseIntSafe(model.getValueAt(i, 2).toString());
+            double price  = parseDoubleSafe(model.getValueAt(i, 3).toString());
+            double sub    = parseDoubleSafe(model.getValueAt(i, 4).toString());
+            items.add(new Object[]{productId, quantity, price, sub});
+        }
 
-        if (saleId > 0) {
-            boolean allOk = true;
+        boolean ventaOk = saleDao.registerSaleTransactional(customerId, employeeId, total, items);
 
-            // Registrar detalle, ajustar inventario y registrar movimiento en Kardex
-            for (int i = 0; i < model.getRowCount(); i++) {
-                int productId = parseIntSafe(model.getValueAt(i, 0).toString());
-                int quantity  = parseIntSafe(model.getValueAt(i, 2).toString());
-                double price  = parseDoubleSafe(model.getValueAt(i, 3).toString());
-                double sub    = parseDoubleSafe(model.getValueAt(i, 4).toString());
-
-                // Obtener el stock actual antes de aplicar la venta
-                Products currentProduct = productsDao.searchCode(productId);
-                int stockAnterior = (currentProduct != null) ? currentProduct.getProduct_quantity() : quantity;
-                int stockNuevo = stockAnterior - quantity;
-
-                // 1. Insertar detalle de venta
-                boolean detailOk = saleDao.registerSaleDetailQuery(saleId, productId, quantity, price, sub);
-                
-                // 2. Descontar del stock general
-                boolean stockOk  = productsDao.updateStockQuery(quantity, productId);
-
-                // 3. Registrar movimiento de SALIDA en el Kardex
-                Kardex k = new Kardex();
-                k.setIdProducto(productId);
-                k.setIdTipoMov(1); // ID para "VENTA" en tu tabla tipo_movimiento
-                k.setIdEmpleado(employeeId);
-                k.setCantidad(quantity);
-                k.setEfecto("SALIDA");
-                k.setSaldoAnterior(stockAnterior);
-                k.setSaldoResultante(stockNuevo);
-                k.setObservacion("Venta realizada en Factura N° " + saleId);
-
-                boolean kardexOk = kardexDao.registrarMovimiento(k);
-
-                if (!detailOk || !stockOk || !kardexOk) {
-                    allOk = false;
-                }
-            }
-
+        if (ventaOk) {
             cleanTableTemp();
             cleanFieldsSales();
             cleanCustomerFields();
@@ -401,14 +373,7 @@ public class SalesController implements ActionListener, MouseListener, KeyListen
                 productsController.refreshTable();
             }
 
-            if (allOk) {
-                JOptionPane.showMessageDialog(null, "¡Venta registrada y trazada en el Kardex con éxito!");
-            } else {
-                JOptionPane.showMessageDialog(null, "Venta procesada, pero se detectaron inconsistencias al registrar en el Kardex.");
-            }
-
-        } else {
-            JOptionPane.showMessageDialog(null, "Error al procesar la venta en la base de datos");
+            JOptionPane.showMessageDialog(null, "¡Venta registrada y trazada en el Kardex con éxito!\n(Transacción ACID confirmada con Commit)", "Venta Exitosa", JOptionPane.INFORMATION_MESSAGE);
         }
     }
 

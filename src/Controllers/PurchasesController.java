@@ -237,43 +237,20 @@ public class PurchasesController implements ActionListener, MouseListener, KeyLi
         purchase.setTotal(total);
         purchase.setEstado(estado);
 
-        int purchaseId = purchaseDao.registerPurchaseQuery(purchase);
+        // RNF-003: Empaquetar ítems y procesar compra bajo Transacción Atómica ACID con Rollback
+        List<Object[]> items = new ArrayList<>();
+        for (int i = 0; i < model.getRowCount(); i++) {
+            int productId = rowProductIds.get(i);
+            int amount = Integer.parseInt(model.getValueAt(i, 2).toString());
+            double price = Double.parseDouble(model.getValueAt(i, 3).toString().replace(",", "."));
+            double subtotal = Double.parseDouble(model.getValueAt(i, 4).toString().replace(",", "."));
+            items.add(new Object[]{productId, amount, price, subtotal});
+        }
 
-        if (purchaseId > 0) {
-            for (int i = 0; i < model.getRowCount(); i++) {
-                int productId = rowProductIds.get(i);
-                int amount = Integer.parseInt(model.getValueAt(i, 2).toString());
-                double price = Double.parseDouble(model.getValueAt(i, 3).toString().replace(",", "."));
-                double subtotal = Double.parseDouble(model.getValueAt(i, 4).toString().replace(",", "."));
+        boolean compraOk = purchaseDao.registerPurchaseTransactional(purchase, items);
 
-                purchaseDao.registerPurchaseDetailsQuery(purchaseId, productId, amount, price, subtotal);
-
-                ProductsDao prodDao = new ProductsDao();
-                Products prod = prodDao.searchCode(productId);
-                int stockAnterior = (prod != null) ? prod.getProduct_quantity() : 0;
-                int stockNuevo = stockAnterior + amount;
-
-                prodDao.updatePurchaseStockQuery(amount, productId);
-
-                // Registrar movimiento de ENTRADA en el Kardex
-                try {
-                    KardexDao kardexDao = new KardexDao();
-                    Kardex k = new Kardex();
-                    k.setIdProducto(productId);
-                    k.setIdTipoMov(2); // 2: COMPRA (ENTRADA)
-                    k.setIdEmpleado(purchase.getEmployee_id());
-                    k.setCantidad(amount);
-                    k.setEfecto("ENTRADA");
-                    k.setSaldoAnterior(stockAnterior);
-                    k.setSaldoResultante(stockNuevo);
-                    k.setObservacion("Compra a proveedor en Factura N° " + purchaseId);
-                    kardexDao.registrarMovimiento(k);
-                } catch (Exception ex) {
-                    System.out.println("Error al registrar compra en Kardex: " + ex.getMessage());
-                }
-            }
-
-            JOptionPane.showMessageDialog(views, "¡Compra registrada exitosamente!");
+        if (compraOk) {
+            JOptionPane.showMessageDialog(views, "¡Compra registrada y asentada en el Kardex con éxito!\n(Transacción ACID confirmada con Commit)", "Compra Exitosa", JOptionPane.INFORMATION_MESSAGE);
             cleanPurchasesForm();
             cleanTablePurchases();
 
@@ -282,8 +259,6 @@ public class PurchasesController implements ActionListener, MouseListener, KeyLi
             if (productsController != null) {
                 productsController.refreshTable();
             }
-        } else {
-            JOptionPane.showMessageDialog(views, "Error al registrar la compra.");
         }
     }
 

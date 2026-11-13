@@ -189,13 +189,18 @@ public class KardexDao {
         return lista;
     }
 
-    // Registrar un ajuste por inventario físico (+/-) actualizando stock y kardex
+    // Registrar un ajuste por inventario físico (+/-) actualizando stock y kardex bajo Transacción ACID (RNF-003)
     public boolean registrarAjusteInventario(int idProducto, int idEmpleado, int nuevoStock, String motivo) {
-        String queryStock = "SELECT product_quantity FROM products WHERE id = ?";
+        String queryStock = "SELECT product_quantity FROM products WHERE id = ? FOR UPDATE";
         String updateStock = "UPDATE products SET product_quantity = ? WHERE id = ?";
+        String insertKardex = "INSERT INTO kardex (idProducto, idTipoMov, idEmpleado, cantidad, efecto, saldoAnterior, saldoResultante, observacion) VALUES (?,?,?,?,?,?,?,?)";
         try {
             con = cn.getConnection();
+            if (con == null) return false;
             asegurarTiposMovimiento(con);
+
+            // RNF-003: INICIO DE TRANSACCIÓN ACID
+            con.setAutoCommit(false);
 
             int stockAnterior = 0;
             try (PreparedStatement psQ = con.prepareStatement(queryStock)) {
@@ -218,25 +223,42 @@ public class KardexDao {
                 psU.executeUpdate();
             }
 
-            // 2. Registrar el movimiento en Kardex con tipo 5 (AJUSTE INVENTARIO)
-            Kardex k = new Kardex();
-            k.setIdProducto(idProducto);
-            k.setIdTipoMov(5); // AJUSTE INVENTARIO
-            k.setIdEmpleado(idEmpleado);
-            k.setCantidad(cantidad);
-            k.setEfecto(efecto);
-            k.setSaldoAnterior(stockAnterior);
-            k.setSaldoResultante(nuevoStock);
-            k.setObservacion(motivo != null && !motivo.trim().isEmpty() ? motivo.trim() : "Ajuste por inventario físico");
+            // 2. Registrar el movimiento en Kardex con tipo 5 (AJUSTE INVENTARIO) en la misma conexión
+            int empId = idEmpleado > 0 ? idEmpleado : EmployeesDao.id_user;
+            if (empId <= 0) empId = 1;
 
-            return registrarMovimiento(k);
+            try (PreparedStatement psK = con.prepareStatement(insertKardex)) {
+                psK.setInt(1, idProducto);
+                psK.setInt(2, 5); // 5: AJUSTE INVENTARIO
+                psK.setInt(3, empId);
+                psK.setInt(4, cantidad);
+                psK.setString(5, efecto);
+                psK.setInt(6, stockAnterior);
+                psK.setInt(7, nuevoStock);
+                psK.setString(8, motivo != null && !motivo.trim().isEmpty() ? motivo.trim() : "Ajuste por inventario físico");
+                psK.executeUpdate();
+            }
+
+            // CONFIRMACIÓN TRANSACCIONAL
+            con.commit();
+            return true;
 
         } catch (SQLException e) {
-            System.out.println("Error al registrar ajuste en Kardex: " + e.getMessage());
+            // ROLLBACK EN CASO DE FALLO (RNF-003)
+            try {
+                if (con != null) {
+                    con.rollback();
+                    System.err.println("¡ROLLBACK ejecutado en ajuste de inventario!: " + e.getMessage());
+                }
+            } catch (SQLException ignored) {}
+            System.out.println("Error transaccional al registrar ajuste en Kardex: " + e.getMessage());
             return false;
         } finally {
             try {
-                if (con != null) con.close();
+                if (con != null) {
+                    con.setAutoCommit(true);
+                    con.close();
+                }
             } catch (SQLException ignored) {}
         }
     }

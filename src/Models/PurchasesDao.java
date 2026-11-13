@@ -18,8 +18,133 @@ public class PurchasesDao {
     PreparedStatement pst;
     ResultSet rs;
 
+    // =========================================================================
+    // RNF-003: REGISTRAR COMPRA COMPLETA BAJO TRANSACCIÓN ATÓMICA ACID (CON ROLLBACK)
+    // =========================================================================
+    public boolean registerPurchaseTransactional(Purchases purchase, List<Object[]> items) {
+        String insertPurchase = "INSERT INTO purchases (supplier_id, employee_id, total, estado, created) VALUES (?,?,?,?,?)";
+        String insertDetail = "INSERT INTO purchase_details (purchase_id, product_id, purchase_amount, purchase_price, purchase_subtotal, purchase_date) VALUES (?,?,?,?,?,?)";
+        String selectStock = "SELECT product_quantity FROM products WHERE id = ?";
+        String updateStock = "UPDATE products SET product_quantity = product_quantity + ? WHERE id = ?";
+        String insertKardex = "INSERT INTO kardex (idProducto, idTipoMov, idEmpleado, cantidad, efecto, saldoAnterior, saldoResultante, observacion) VALUES (?,?,?,?,?,?,?,?)";
+
+        Timestamp dateTime = new Timestamp(new Date().getTime());
+
+        try {
+            conn = cn.getConnection();
+            if (conn == null) {
+                JOptionPane.showMessageDialog(null, "No hay conexión disponible con la base de datos.");
+                return false;
+            }
+
+            // INICIO DE LA TRANSACCIÓN ACID (RNF-003)
+            conn.setAutoCommit(false);
+
+            // 1. Insertar Cabecera de Compra
+            int purchaseId = 0;
+            try (PreparedStatement pstPur = conn.prepareStatement(insertPurchase, Statement.RETURN_GENERATED_KEYS)) {
+                pstPur.setInt(1, purchase.getSupplier_id());
+                pstPur.setInt(2, purchase.getEmployee_id());
+                pstPur.setDouble(3, purchase.getTotal());
+                pstPur.setString(4, purchase.getEstado());
+                pstPur.setTimestamp(5, dateTime);
+                pstPur.executeUpdate();
+
+                try (ResultSet rsKeys = pstPur.getGeneratedKeys()) {
+                    if (rsKeys.next()) {
+                        purchaseId = rsKeys.getInt(1);
+                    }
+                }
+            }
+
+            if (purchaseId <= 0) {
+                conn.rollback();
+                throw new SQLException("No se pudo generar el ID único de la orden de compra.");
+            }
+
+            // 2. Procesar cada producto adquirido
+            for (Object[] item : items) {
+                int productId = (int) item[0];
+                int amount    = (int) item[1];
+                double price  = (double) item[2];
+                double sub    = (double) item[3];
+
+                // 2.1 Obtener stock anterior
+                int stockAnterior = 0;
+                try (PreparedStatement pstStock = conn.prepareStatement(selectStock)) {
+                    pstStock.setInt(1, productId);
+                    try (ResultSet rsStock = pstStock.executeQuery()) {
+                        if (rsStock.next()) {
+                            stockAnterior = rsStock.getInt("product_quantity");
+                        }
+                    }
+                }
+
+                int stockNuevo = stockAnterior + amount;
+
+                // 2.2 Insertar detalle de compra
+                try (PreparedStatement pstDet = conn.prepareStatement(insertDetail)) {
+                    pstDet.setInt(1, purchaseId);
+                    pstDet.setInt(2, productId);
+                    pstDet.setInt(3, amount);
+                    pstDet.setDouble(4, price);
+                    pstDet.setDouble(5, sub);
+                    pstDet.setTimestamp(6, dateTime);
+                    pstDet.executeUpdate();
+                }
+
+                // 2.3 Incrementar stock en catálogo
+                try (PreparedStatement pstUpd = conn.prepareStatement(updateStock)) {
+                    pstUpd.setInt(1, amount);
+                    pstUpd.setInt(2, productId);
+                    pstUpd.executeUpdate();
+                }
+
+                // 2.4 Registrar movimiento de ENTRADA en el Kardex
+                try (PreparedStatement pstKardex = conn.prepareStatement(insertKardex)) {
+                    pstKardex.setInt(1, productId);
+                    pstKardex.setInt(2, 2); // 2: COMPRA (ENTRADA)
+                    pstKardex.setInt(3, purchase.getEmployee_id());
+                    pstKardex.setInt(4, amount);
+                    pstKardex.setString(5, "ENTRADA");
+                    pstKardex.setInt(6, stockAnterior);
+                    pstKardex.setInt(7, stockNuevo);
+                    pstKardex.setString(8, "Abastecimiento Factura Compra N° " + purchaseId);
+                    pstKardex.executeUpdate();
+                }
+            }
+
+            // COMMIT TRANSACCIONAL
+            conn.commit();
+            return true;
+
+        } catch (SQLException e) {
+            // ROLLBACK EN CASO DE ERROR (RNF-003)
+            try {
+                if (conn != null) {
+                    conn.rollback();
+                    System.err.println("¡ROLLBACK ejecutado con éxito! Se revirtió la compra por: " + e.getMessage());
+                }
+            } catch (SQLException exRollback) {
+                System.err.println("Error al ejecutar rollback en compra: " + exRollback.getMessage());
+            }
+            JOptionPane.showMessageDialog(null,
+                    "Error transaccional al procesar la compra. Se ejecutó ROLLBACK:\n" + e.getMessage(),
+                    "Error de Transacción (ACID)", JOptionPane.ERROR_MESSAGE);
+            return false;
+
+        } finally {
+            try {
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (SQLException ignored) {}
+        }
+    }
+
     // =========================================
-    // REGISTRAR ENCABEZADO DE LA COMPRA
+    // REGISTRAR ENCABEZADO DE LA COMPRA (COMPATIBILIDAD)
     // =========================================
     public int registerPurchaseQuery(Purchases purchase) {
         String query = "INSERT INTO purchases (supplier_id, employee_id, total, estado, created) VALUES (?,?,?,?,?)";
@@ -144,6 +269,10 @@ public class PurchasesDao {
 
         try {
             conn = cn.getConnection();
+            if (conn == null) return false;
+
+            // RNF-003: INICIO DE TRANSACCIÓN ACID
+            conn.setAutoCommit(false);
 
             // 0. Obtener employee_id de la compra original para Kardex
             int employeeId = EmployeesDao.id_user;
@@ -202,17 +331,23 @@ public class PurchasesDao {
             rsDetails.close();
             pstDetails.close();
 
+            // COMMIT TRANSACCIONAL
+            conn.commit();
             return true;
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Error al cancelar la compra: " + e);
+            // ROLLBACK EN CASO DE FALLO (RNF-003)
+            try {
+                if (conn != null) conn.rollback();
+            } catch (SQLException ignored) {}
+            JOptionPane.showMessageDialog(null, "Error al cancelar la compra (Rollback ejecutado): " + e);
             return false;
         } finally {
             try {
-                if (pst != null) pst.close();
-                if (conn != null) conn.close();
-            } catch (SQLException ex) {
-                System.out.println(ex.toString());
-            }
+                if (conn != null) {
+                    conn.setAutoCommit(true);
+                    conn.close();
+                }
+            } catch (SQLException ignored) {}
         }
     }
 }
