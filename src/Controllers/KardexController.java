@@ -194,7 +194,7 @@ public class KardexController implements ActionListener, KeyListener {
             permitido = settingsController.isAdmin() || settingsController.isAlmacenista();
         } else if (loggedEmployee != null && loggedEmployee.getRol() != null) {
             String r = loggedEmployee.getRol().toLowerCase();
-            permitido = r.contains("admin") || r.contains("gerente") || r.contains("almacen") || r.contains("bodega");
+            permitido = r.contains("admin") || r.contains("gerente") || r.contains("almacen") || r.contains("bodeg");
         }
 
         if (!permitido) {

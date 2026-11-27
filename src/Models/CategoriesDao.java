@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -36,7 +37,15 @@ public class CategoriesDao {
             return true;
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Error al registrar la categoría: " + e);
+            if (e.getErrorCode() == 1062 || e instanceof SQLIntegrityConstraintViolationException
+                    || (e.getMessage() != null && e.getMessage().contains("Duplicate entry"))) {
+                JOptionPane.showMessageDialog(null,
+                        "La categoría '" + categories.getName() + "' ya se encuentra registrada en el sistema.",
+                        "Categoría Ya Registrada",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, "Error al registrar la categoría: " + e.getMessage(), "Error al Registrar", JOptionPane.ERROR_MESSAGE);
+            }
             return false;
         }
     }
@@ -86,7 +95,15 @@ public class CategoriesDao {
             return true;
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Error al registrar la categoría: " + e);
+            if (e.getErrorCode() == 1062 || e instanceof SQLIntegrityConstraintViolationException
+                    || (e.getMessage() != null && e.getMessage().contains("Duplicate entry"))) {
+                JOptionPane.showMessageDialog(null,
+                        "La categoría '" + categories.getName() + "' ya se encuentra registrada en el sistema.",
+                        "Categoría Ya Registrada",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, "Error al registrar la categoría: " + e.getMessage(), "Error al Registrar", JOptionPane.ERROR_MESSAGE);
+            }
             return false;
         }
     }

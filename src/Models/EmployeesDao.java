@@ -5,6 +5,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
@@ -129,8 +130,16 @@ public class EmployeesDao {
             return true;
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null,
-                    "Error al registrar empleado" + e);
+            if (e.getErrorCode() == 1062 || e instanceof SQLIntegrityConstraintViolationException
+                    || (e.getMessage() != null && e.getMessage().contains("Duplicate entry"))) {
+                JOptionPane.showMessageDialog(null,
+                        "Ya existe un colaborador registrado con la misma identificación o nombre de usuario.",
+                        "Colaborador Ya Registrado",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null,
+                        "Error al registrar empleado: " + e.getMessage(), "Error al Registrar", JOptionPane.ERROR_MESSAGE);
+            }
             return false;
         }
     }
@@ -182,8 +191,9 @@ public class EmployeesDao {
     // Modificar Empleado
     public boolean updateEmployeeQuery(Employees employee) {
 
+        // ✅ El sueldo NO se actualiza aquí (se gestiona exclusivamente desde Reportes -> Sueldos y Nómina mediante updateSalary)
         String query = "UPDATE employees SET full_name = ?, username = ?, "
-                + "address = ?, telephone = ?, email = ?, rol = ?, salary = ?, updated_at = ? "
+                + "address = ?, telephone = ?, email = ?, rol = ?, updated_at = ? "
                 + "WHERE id = ?";
         Timestamp dateTime = new Timestamp(new Date().getTime());
 
@@ -198,9 +208,8 @@ public class EmployeesDao {
             pst.setString(4, employee.getTelephone());
             pst.setString(5, employee.getEmail());
             pst.setString(6, employee.getRol());
-            pst.setDouble(7, employee.getSalary());
-            pst.setTimestamp(8, dateTime);
-            pst.setInt(9, employee.getId());
+            pst.setTimestamp(7, dateTime);
+            pst.setInt(8, employee.getId());
 
             pst.execute();
             return true;

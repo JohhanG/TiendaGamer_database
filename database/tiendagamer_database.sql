@@ -144,6 +144,9 @@ CREATE TABLE `employees` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
 
 -- Volcado de datos para `employees`
+INSERT INTO `employees` VALUES (1, 'Administrador del Sistema', 'admin', 'Calle 1 # 1-1', '3001234567', 'admin@tiendagamer.com', '0192023a7bbd73250516f069df18b500', 'Administrador', 4000000.0, '2026-11-17T12:00:00', '2026-11-17T12:00:00', 0, 0);
+INSERT INTO `employees` VALUES (2, 'Cajero POS Principal', 'cajero1', 'Cra 2 # 2-2', '3002345678', 'cajero1@tiendagamer.com', '9a951b541d12368f539b746c7c8b7da6', 'Cajero (POS)', 1600000.0, '2026-11-17T12:00:00', '2026-11-17T12:00:00', 0, 0);
+INSERT INTO `employees` VALUES (3, 'Encargado de Bodega e Inventario', 'bodega1', 'Av 3 # 3-3', '3003456789', 'bodega1@tiendagamer.com', '4565a1bb2aae33414d55222903f34c6e', 'Bodeguero', 1800000.0, '2026-11-17T12:00:00', '2026-11-17T12:00:00', 0, 0);
 INSERT INTO `employees` VALUES (112, 'juan esteban', 'juan', 'cra43', '3442344567', 'juan@gmail.com', 'e10adc3949ba59abbe56e057f20f883e', 'Jefe de Compras', 1800000.0, '2026-05-11T15:31:11', '2026-09-30T12:46:12', 0, 0);
 INSERT INTO `employees` VALUES (123, 'Johhan Gonzalez', 'JohhanG', '123', '3234185080', 'johhangonzalez11@gmail.com', 'e10adc3949ba59abbe56e057f20f883e', 'Administrador', 4000000.0, NULL, '2026-09-12T18:28:57', 0, 0);
 INSERT INTO `employees` VALUES (125, 'Santiago Paz', 'SantiagoP', 'casa 32', '3234506080', '', 'e10adc3949ba59abbe56e057f20f883e', 'Vendedor / Cajero', 1500000.0, '2026-05-07T12:05:14', '2026-09-30T13:02:39', 0, 0);

@@ -118,11 +118,25 @@ public class PurchasesController implements ActionListener, MouseListener, KeyLi
             Products product = productsDao.searchCode(code);
 
             if (product != null && product.getId() > 0) {
+                views.txt_purchase_id.setText(String.valueOf(product.getId()));
                 views.txt_purchase_product_name.setText(product.getName());
                 views.txt_purchase_price.setText(String.format("%.2f", product.getUnit_price()));
                 views.txt_purchase_amount.requestFocus();
             } else {
-                JOptionPane.showMessageDialog(views, "El producto no existe o está inactivo");
+                Products any = productsDao.searchProductByCodeAll(code);
+                if (any != null && any.getStatus() == 0) {
+                    JOptionPane.showMessageDialog(views,
+                        "El producto '" + any.getName() + "' (código " + code + ") se encuentra DESACTIVADO.\n"
+                        + "Debe reactivarlo en el módulo de 'Productos' antes de registrar compras para él.",
+                        "Producto Inactivo",
+                        JOptionPane.WARNING_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(views,
+                        "El producto con código " + code + " no está registrado en el catálogo.\n"
+                        + "Para comprar este artículo, primero debe registrarlo en el módulo de 'Productos'.",
+                        "Producto No Encontrado",
+                        JOptionPane.INFORMATION_MESSAGE);
+                }
                 cleanPurchaseInputs();
                 views.txt_purchase_product_code.requestFocus();
             }
@@ -140,18 +154,31 @@ public class PurchasesController implements ActionListener, MouseListener, KeyLi
 
     public void addProductToPurchaseTable() {
         try {
-            int amount = Integer.parseInt(views.txt_purchase_amount.getText());
-            int code = Integer.parseInt(views.txt_purchase_product_code.getText());
+            int amount = Integer.parseInt(views.txt_purchase_amount.getText().trim());
+            int code = Integer.parseInt(views.txt_purchase_product_code.getText().trim());
 
             if (amount <= 0) {
-                JOptionPane.showMessageDialog(views, "La cantidad debe ser mayor a 0");
+                JOptionPane.showMessageDialog(views, "La cantidad debe ser mayor a 0", "Cantidad Inválida", JOptionPane.WARNING_MESSAGE);
                 return;
             }
 
             Products product = productsDao.searchCode(code);
 
             if (product == null || product.getId() == 0) {
-                JOptionPane.showMessageDialog(views, "El producto no existe o está inactivo");
+                Products any = productsDao.searchProductByCodeAll(code);
+                if (any != null && any.getStatus() == 0) {
+                    JOptionPane.showMessageDialog(views,
+                        "El producto '" + any.getName() + "' (código " + code + ") se encuentra DESACTIVADO.\n"
+                        + "Debe reactivarlo en el módulo de 'Productos' antes de registrar compras para él.",
+                        "Producto Inactivo",
+                        JOptionPane.WARNING_MESSAGE);
+                } else {
+                    JOptionPane.showMessageDialog(views,
+                        "El producto con código " + code + " no está registrado.\n"
+                        + "Primero debe registrar el producto en el módulo de 'Productos'.",
+                        "Producto No Encontrado",
+                        JOptionPane.INFORMATION_MESSAGE);
+                }
                 return;
             }
 

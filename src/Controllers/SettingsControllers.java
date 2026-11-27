@@ -99,7 +99,7 @@ public class SettingsControllers {
         String r = loggedEmployee.getRol().toLowerCase().trim();
         if (r.contains("admin") || r.contains("gerente")) return "admin";
         if (r.contains("compra")) return "compras";
-        if (r.contains("almacen") || r.contains("bodega")) return "almacen";
+        if (r.contains("almacen") || r.contains("bodeg")) return "almacen";
         return "vendedor";
     }
 
