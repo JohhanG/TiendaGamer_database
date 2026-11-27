@@ -17,6 +17,7 @@ db.name=defaultdb
 db.user=avnadmin
 db.password=TU_PASSWORD_AIVEN
 db.ssl=true
+db.timezone=America/Bogota
 
 # --- 2. Conexión de Respaldo Automático (Localhost / XAMPP / MySQL) ---
 # Requiere importar previamente: database/tiendagamer_database.sql

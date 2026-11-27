@@ -34,6 +34,7 @@ public class ConnectionMySQL {
     private String user = "avnadmin";
     private String password = "";
     private String ssl = "true";
+    private String timezone = "America/Bogota";
 
     // Configuración de Respaldo Automático (Local)
     private boolean fallbackEnabled = true;
@@ -99,6 +100,11 @@ public class ConnectionMySQL {
             } else if (!"localhost".equalsIgnoreCase(host) && !"127.0.0.1".equals(host)) {
                 ssl = "true";
             }
+            if (prop.getProperty("db.timezone") != null && !prop.getProperty("db.timezone").trim().isEmpty()) {
+                timezone = prop.getProperty("db.timezone").trim();
+            } else {
+                timezone = "America/Bogota";
+            }
 
             // 2. Cargar Configuración de Respaldo Local (Fallback)
             if (prop.getProperty("db.fallback.enabled") != null) {
@@ -157,8 +163,8 @@ public class ConnectionMySQL {
 
             if (cloudHostReachable) {
                 String sslParams = "true".equalsIgnoreCase(ssl)
-                        ? "?useSSL=true&trustServerCertificate=true&serverTimezone=UTC&allowPublicKeyRetrieval=true&connectTimeout=2500"
-                        : "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&connectTimeout=2500";
+                        ? "?useSSL=true&trustServerCertificate=true&serverTimezone=" + timezone + "&allowPublicKeyRetrieval=true&connectTimeout=2500"
+                        : "?useSSL=false&serverTimezone=" + timezone + "&allowPublicKeyRetrieval=true&connectTimeout=2500";
                 String urlPrimary = "jdbc:mysql://" + host + ":" + port + "/" + database_name + sslParams;
 
                 try {
@@ -183,8 +189,8 @@ public class ConnectionMySQL {
             if (fallbackEnabled) {
                 System.out.println("[DB Failover] Conmutando automáticamente a Base de Datos Local (" + fallbackHost + ":" + fallbackPort + ")...");
                 String sslParamsLocal = "true".equalsIgnoreCase(fallbackSsl)
-                        ? "?useSSL=true&trustServerCertificate=true&serverTimezone=UTC&allowPublicKeyRetrieval=true"
-                        : "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
+                        ? "?useSSL=true&trustServerCertificate=true&serverTimezone=" + timezone + "&allowPublicKeyRetrieval=true"
+                        : "?useSSL=false&serverTimezone=" + timezone + "&allowPublicKeyRetrieval=true";
                 String urlFallback = "jdbc:mysql://" + fallbackHost + ":" + fallbackPort + "/" + fallbackDatabase + sslParamsLocal;
 
                 // Probar con contraseña configurada
