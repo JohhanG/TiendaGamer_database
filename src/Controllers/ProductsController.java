@@ -162,17 +162,65 @@ public class ProductsController implements ActionListener,
         if (noTienePermisos()) return;
 
         if (fieldsEmpty()) {
-            JOptionPane.showMessageDialog(null, "Todos los campos son obligatorios");
+            JOptionPane.showMessageDialog(null, "Todos los campos son obligatorios", "Campos Requeridos", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int code;
+        try {
+            code = Integer.parseInt(views.txt_product_code.getText().trim());
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(null, "El código del producto debe ser un número entero válido", "Dato Inválido", JOptionPane.WARNING_MESSAGE);
+            views.txt_product_code.requestFocus();
+            return;
+        }
+
+        double unitPrice;
+        try {
+            unitPrice = Double.parseDouble(views.txt_product_unit_price.getText().trim());
+            if (unitPrice < 0) {
+                JOptionPane.showMessageDialog(null, "El precio de venta no puede ser negativo", "Dato Inválido", JOptionPane.WARNING_MESSAGE);
+                views.txt_product_unit_price.requestFocus();
+                return;
+            }
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(null, "El precio de venta debe ser un número válido", "Dato Inválido", JOptionPane.WARNING_MESSAGE);
+            views.txt_product_unit_price.requestFocus();
             return;
         }
 
         DynamicComboBox category =
                 (DynamicComboBox) views.cmd_categories.getSelectedItem();
+        if (category == null || category.getId() <= 0) {
+            JOptionPane.showMessageDialog(null, "Debe seleccionar una categoría válida para el producto", "Categoría Requerida", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
-        product.setCode(Integer.parseInt(views.txt_product_code.getText().trim()));
+        // VALIDACIÓN PREVENTIVA DE CÓDIGO DUPLICADO
+        Products existing = productsDao.searchProductByCodeAll(code);
+        if (existing != null && existing.getId() > 0) {
+            if (existing.getStatus() == 1) {
+                JOptionPane.showMessageDialog(null,
+                    "El producto con el código '" + code + "' ya se encuentra registrado: \"" + existing.getName() + "\".\n\n"
+                    + "• Si desea modificar su nombre, descripción o precio, selecciónelo en la tabla y presione 'Modificar'.\n"
+                    + "• Si desea abastecer o ingresar unidades de inventario, hágalo desde el módulo de 'Compras'.",
+                    "Producto Ya Registrado",
+                    JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null,
+                    "El producto con el código '" + code + "' (\"" + existing.getName() + "\") ya existe pero se encuentra DESACTIVADO.\n\n"
+                    + "Para volver a utilizarlo, selecciónelo en la tabla y presione el botón 'Activar Producto'.",
+                    "Producto Inactivo",
+                    JOptionPane.WARNING_MESSAGE);
+            }
+            views.txt_product_code.requestFocus();
+            return;
+        }
+
+        product.setCode(code);
         product.setName(views.txt_product_name.getText().trim());
         product.setDescription(views.txt_product_description.getText().trim());
-        product.setUnit_price(Double.parseDouble(views.txt_product_unit_price.getText().trim()));
+        product.setUnit_price(unitPrice);
         product.setProduct_quantity(0);
         product.setCategory_id(category.getId());
         product.setImage(currentProductImage);
@@ -191,18 +239,51 @@ public class ProductsController implements ActionListener,
         if (noTienePermisos()) return;
 
         if (views.txt_product_id.getText().isEmpty()) {
-            JOptionPane.showMessageDialog(null, "Primero debes seleccionar un producto");
+            JOptionPane.showMessageDialog(null, "Primero debes seleccionar un producto de la tabla", "Seleccione Producto", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        int id;
+        int code;
+        double unitPrice;
+        try {
+            id = Integer.parseInt(views.txt_product_id.getText().trim());
+            code = Integer.parseInt(views.txt_product_code.getText().trim());
+            unitPrice = Double.parseDouble(views.txt_product_unit_price.getText().trim());
+            if (unitPrice < 0) {
+                JOptionPane.showMessageDialog(null, "El precio de venta no puede ser negativo", "Dato Inválido", JOptionPane.WARNING_MESSAGE);
+                views.txt_product_unit_price.requestFocus();
+                return;
+            }
+        } catch (NumberFormatException ex) {
+            JOptionPane.showMessageDialog(null, "Verifique que el código y el precio sean números válidos", "Dato Inválido", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
         DynamicComboBox category =
                 (DynamicComboBox) views.cmd_categories.getSelectedItem();
+        if (category == null || category.getId() <= 0) {
+            JOptionPane.showMessageDialog(null, "Debe seleccionar una categoría válida", "Categoría Requerida", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
 
-        product.setId(Integer.parseInt(views.txt_product_id.getText().trim()));
-        product.setCode(Integer.parseInt(views.txt_product_code.getText().trim()));
+        // VALIDAR QUE EL CÓDIGO NO PERTENEZCA A OTRO PRODUCTO DISTINTO
+        Products existing = productsDao.searchProductByCodeAll(code);
+        if (existing != null && existing.getId() != id) {
+            JOptionPane.showMessageDialog(null,
+                "El código '" + code + "' ya está registrado para otro producto: \"" + existing.getName() + "\".\n"
+                + "Por favor ingrese un código diferente.",
+                "Código Duplicado",
+                JOptionPane.WARNING_MESSAGE);
+            views.txt_product_code.requestFocus();
+            return;
+        }
+
+        product.setId(id);
+        product.setCode(code);
         product.setName(views.txt_product_name.getText().trim());
         product.setDescription(views.txt_product_description.getText().trim());
-        product.setUnit_price(Double.parseDouble(views.txt_product_unit_price.getText().trim()));
+        product.setUnit_price(unitPrice);
 
         Products current = productsDao.searchProduct(product.getId());
         product.setProduct_quantity(current.getProduct_quantity());

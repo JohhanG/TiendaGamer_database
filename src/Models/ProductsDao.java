@@ -45,7 +45,17 @@ public class ProductsDao {
             return true;
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Error al registrar producto: " + e);
+            if (e.getErrorCode() == 1062 || e instanceof SQLIntegrityConstraintViolationException
+                    || (e.getMessage() != null && e.getMessage().contains("Duplicate entry"))) {
+                JOptionPane.showMessageDialog(null,
+                        "El producto con el código '" + product.getCode() + "' ya se encuentra registrado en el sistema.\n\n"
+                        + "• Si desea modificar su nombre, descripción o precio, selecciónelo en la tabla y presione 'Modificar'.\n"
+                        + "• Si desea agregar nuevas unidades de inventario, hágalo a través del módulo de 'Compras'.",
+                        "Producto Ya Registrado",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, "Error al registrar producto: " + e.getMessage(), "Error al Registrar", JOptionPane.ERROR_MESSAGE);
+            }
             return false;
         } finally {
             closeResources();
@@ -77,7 +87,16 @@ public class ProductsDao {
             return true;
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Error al actualizar producto: " + e);
+            if (e.getErrorCode() == 1062 || e instanceof SQLIntegrityConstraintViolationException
+                    || (e.getMessage() != null && e.getMessage().contains("Duplicate entry"))) {
+                JOptionPane.showMessageDialog(null,
+                        "El código '" + product.getCode() + "' ya pertenece a otro producto registrado.\n"
+                        + "Por favor ingrese un código diferente.",
+                        "Código Duplicado",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, "Error al actualizar producto: " + e.getMessage(), "Error al Actualizar", JOptionPane.ERROR_MESSAGE);
+            }
             return false;
         } finally {
             closeResources();
@@ -160,6 +179,48 @@ public class ProductsDao {
 
         } catch (SQLException e) {
             JOptionPane.showMessageDialog(null, "Error al buscar producto: " + e);
+        } finally {
+            closeResources();
+        }
+
+        return product;
+    }
+
+    // =========================
+    // BUSCAR CUALQUIER PRODUCTO POR CÓDIGO (ACTIVO O INACTIVO)
+    // Para validaciones de unicidad y mensajes amigables
+    // =========================
+    public Products searchProductByCodeAll(int code) {
+
+        Products product = null;
+
+        String sql = "SELECT p.*, c.name AS category_name FROM products p "
+                   + "LEFT JOIN categories c ON p.category_id = c.id "
+                   + "WHERE p.code = ?";
+
+        try {
+            conn = cn.getConnection();
+            pst  = conn.prepareStatement(sql);
+            pst.setInt(1, code);
+
+            rs = pst.executeQuery();
+
+            if (rs.next()) {
+                product = new Products();
+                product.setId(rs.getInt("id"));
+                product.setCode(rs.getInt("code"));
+                product.setName(rs.getString("name"));
+                product.setDescription(rs.getString("description"));
+                product.setUnit_price(rs.getDouble("unit_price"));
+                product.setProduct_quantity(rs.getInt("product_quantity"));
+                product.setCategory_id(rs.getInt("category_id"));
+                product.setCategory_name(rs.getString("category_name"));
+                product.setImage(rs.getString("image"));
+                product.setStatus(rs.getInt("status"));
+            }
+
+        } catch (SQLException e) {
+            JOptionPane.showMessageDialog(null, "Error al consultar código de producto: " + e.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
         } finally {
             closeResources();
         }

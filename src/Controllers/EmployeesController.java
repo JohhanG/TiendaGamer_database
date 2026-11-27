@@ -284,6 +284,8 @@ public class EmployeesController implements ActionListener, MouseListener, KeyLi
                 views.txt_employee_password.setText("");
             }
             views.txt_employee_id.setEditable(false);
+            views.txt_employee_salary.setEditable(false); // 🔒 El sueldo no se modifica aquí, se administra en Reportes -> Sueldos y Nómina
+            views.txt_employee_salary.setToolTipText("Para modificar el sueldo, use el módulo de Reportes -> Sueldos y Nómina");
             views.btn_register_employee.setEnabled(false);
         }
     }
@@ -323,6 +325,8 @@ public class EmployeesController implements ActionListener, MouseListener, KeyLi
         if (views.cmb_rol.getItemCount() > 0)
             views.cmb_rol.setSelectedIndex(0);
         views.txt_employee_id.setEditable(true);
+        views.txt_employee_salary.setEditable(true); // ✅ Habilitado para ingresar sueldo inicial al registrar un nuevo empleado
+        views.txt_employee_salary.setToolTipText(null);
         views.btn_register_employee.setEnabled(true);
     }
 

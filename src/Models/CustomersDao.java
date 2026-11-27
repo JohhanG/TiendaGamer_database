@@ -4,6 +4,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Date;
@@ -45,7 +46,15 @@ public class CustomersDao {
             return true;
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Error al registrar cliente: " + e);
+            if (e.getErrorCode() == 1062 || e instanceof SQLIntegrityConstraintViolationException
+                    || (e.getMessage() != null && e.getMessage().contains("Duplicate entry"))) {
+                JOptionPane.showMessageDialog(null,
+                        "El cliente con identificación '" + customer.getId() + "' ya se encuentra registrado en el sistema.",
+                        "Cliente Ya Registrado",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, "Error al registrar cliente: " + e.getMessage(), "Error al Registrar", JOptionPane.ERROR_MESSAGE);
+            }
             return false;
         }
     }

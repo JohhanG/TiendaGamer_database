@@ -6,6 +6,7 @@ import java.util.List;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.SQLIntegrityConstraintViolationException;
 import java.sql.Timestamp;
 import java.util.Date;
 import javax.swing.JOptionPane;
@@ -45,7 +46,15 @@ public class SuppliersDao {
             return true;
 
         } catch (SQLException e) {
-            JOptionPane.showMessageDialog(null, "Error al registrar proveedor: " + e);
+            if (e.getErrorCode() == 1062 || e instanceof SQLIntegrityConstraintViolationException
+                    || (e.getMessage() != null && e.getMessage().contains("Duplicate entry"))) {
+                JOptionPane.showMessageDialog(null,
+                        "El proveedor '" + suppliers.getName() + "' ya se encuentra registrado en el sistema.",
+                        "Proveedor Ya Registrado",
+                        JOptionPane.WARNING_MESSAGE);
+            } else {
+                JOptionPane.showMessageDialog(null, "Error al registrar proveedor: " + e.getMessage(), "Error al Registrar", JOptionPane.ERROR_MESSAGE);
+            }
             return false;
         }
     }

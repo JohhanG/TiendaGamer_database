@@ -9,3 +9,6 @@
 db.properties
 *.properties.local
 
+
+scratch/
+*.bin
