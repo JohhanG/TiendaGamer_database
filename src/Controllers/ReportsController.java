@@ -73,15 +73,46 @@ public class ReportsController implements MouseListener {
             views.btn_edit_salary.addActionListener(e -> modifySelectedEmployeeSalary());
         }
 
-        loadSales();
-        loadPurchases();
-        loadEmployeeSalaries();
+        // Control de Acceso RBAC para Subreportes:
+        // El Jefe de Compras solo debe tener acceso al reporte de compras realizadas (no ventas ni nómina)
+        if (isJefeCompras()) {
+            if (views.subTabReports != null) {
+                if (views.panelVentas != null) {
+                    views.subTabReports.remove(views.panelVentas);
+                }
+                if (views.panelSueldos != null) {
+                    views.subTabReports.remove(views.panelSueldos);
+                }
+                if (views.panelCompras != null) {
+                    views.subTabReports.setSelectedComponent(views.panelCompras);
+                }
+            }
+            loadPurchases();
+        } else {
+            loadSales();
+            loadPurchases();
+            loadEmployeeSalaries();
+        }
+    }
+
+    public boolean isJefeCompras() {
+        if (loggedEmployee == null || loggedEmployee.getRol() == null) return false;
+        String r = loggedEmployee.getRol().toLowerCase().trim();
+        return r.contains("compra");
+    }
+
+    public boolean isAdmin() {
+        if (loggedEmployee == null || loggedEmployee.getRol() == null) return false;
+        String r = loggedEmployee.getRol().toLowerCase().trim();
+        return r.contains("admin") || r.contains("gerente");
     }
 
     // =========================================
     // CARGAR VENTAS EN LA TABLA
     // =========================================
     public void loadSales() {
+        if (isJefeCompras()) return;
+        if (salesModel == null) return;
 
         salesModel.setColumnIdentifiers(new Object[]{
             "Factura Venta", "Cliente", "Empleado", "Total", "Fecha de Venta", "Estado"
@@ -137,6 +168,7 @@ public class ReportsController implements MouseListener {
     // CARGAR SUELDOS DE EMPLEADOS (NÓMINA)
     // =========================================
     public void loadEmployeeSalaries() {
+        if (isJefeCompras()) return;
         if (views.table_employee_salaries == null) return;
 
         salariesModel = (DefaultTableModel) views.table_employee_salaries.getModel();
@@ -304,6 +336,7 @@ public class ReportsController implements MouseListener {
     // DEVOLUCIÓN DE CLIENTE (CANCELAR VENTA)
     // =========================================
     private void cancelSelectedSale() {
+        if (isJefeCompras()) return;
         int row = views.table_all_sales.getSelectedRow();
         if (row == -1) return;
 

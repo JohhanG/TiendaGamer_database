@@ -1910,11 +1910,11 @@ public class SystemView extends javax.swing.JFrame {
         jPanel13.setBackground(new java.awt.Color(255, 255, 255));
         jPanel13.setLayout(new java.awt.BorderLayout());
 
-        javax.swing.JTabbedPane subTabReports = new javax.swing.JTabbedPane();
+        subTabReports = new javax.swing.JTabbedPane();
         subTabReports.setFont(new java.awt.Font("Tahoma", 1, 13));
 
         // Subpanel 1: Ventas Realizadas
-        javax.swing.JPanel panelVentas = new javax.swing.JPanel(new java.awt.BorderLayout(0, 10));
+        panelVentas = new javax.swing.JPanel(new java.awt.BorderLayout(0, 10));
         panelVentas.setBackground(java.awt.Color.WHITE);
         panelVentas.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 20, 15, 20));
         javax.swing.JLabel lblTitleVentas = new javax.swing.JLabel("Ventas Realizadas  (Doble clic para procesar devolución)");
@@ -1932,7 +1932,7 @@ public class SystemView extends javax.swing.JFrame {
         subTabReports.addTab("Ventas Realizadas", panelVentas);
 
         // Subpanel 2: Compras Realizadas
-        javax.swing.JPanel panelCompras = new javax.swing.JPanel(new java.awt.BorderLayout(0, 10));
+        panelCompras = new javax.swing.JPanel(new java.awt.BorderLayout(0, 10));
         panelCompras.setBackground(java.awt.Color.WHITE);
         panelCompras.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 20, 15, 20));
         javax.swing.JLabel lblTitleCompras = new javax.swing.JLabel("Compras Realizadas  (Doble clic para procesar devolución)");
@@ -1950,7 +1950,7 @@ public class SystemView extends javax.swing.JFrame {
         subTabReports.addTab("Compras Realizadas", panelCompras);
 
         // Subpanel 3: Sueldos de Empleados
-        javax.swing.JPanel panelSueldos = new javax.swing.JPanel(new java.awt.BorderLayout(0, 15));
+        panelSueldos = new javax.swing.JPanel(new java.awt.BorderLayout(0, 15));
         panelSueldos.setBackground(java.awt.Color.WHITE);
         panelSueldos.setBorder(javax.swing.BorderFactory.createEmptyBorder(15, 20, 15, 20));
 
@@ -3584,6 +3584,10 @@ public class SystemView extends javax.swing.JFrame {
     public javax.swing.JButton btn_edit_salary;
     public javax.swing.JLabel lbl_total_salaries;
     public javax.swing.JLabel lbl_count_salaries;
+    public javax.swing.JTabbedPane subTabReports;
+    public javax.swing.JPanel panelVentas;
+    public javax.swing.JPanel panelCompras;
+    public javax.swing.JPanel panelSueldos;
     public javax.swing.JPanel jPanelKardex;
     public javax.swing.JLabel jLabelKardex;
     public javax.swing.JPanel jPanelKardexTab;
